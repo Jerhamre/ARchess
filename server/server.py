@@ -355,7 +355,7 @@ def queen_threat(pos, player):
     surrounding_squares = king_info[player]['free_space']
     for x in range(0, surrounding_squares):
         if 'success' in move_queen(pos, surrounding_squares[x], opponent(player)):
-            print('todo')
+            print('todo implement')
 
 
 if __name__ == '__main__':
