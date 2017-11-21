@@ -3,7 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ARchess.iml" filepath="$PROJECT_DIR$/ARchess.iml" />
+      <module fileurl="file://C:\Users\Bosse\StudioProjects\ARchess\ARchess.iml" filepath="C:\Users\Bosse\StudioProjects\ARchess\ARchess.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://C:\Users\Bosse\StudioProjects\ARchess\app\app.iml" filepath="C:\Users\Bosse\StudioProjects\ARchess\app\app.iml" />
     </modules>
   </component>
 </project>
