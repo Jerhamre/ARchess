@@ -8,8 +8,8 @@ socketio = SocketIO(app)
 col0 = ['WR', 'WP', '.', '.', '.', '.', 'BP', 'BR']
 col1 = ['WN', 'WP', '.', '.', '.', '.', 'BP', 'BN']
 col2 = ['WB', 'WP', '.', '.', '.', '.', 'BP', 'BB']
-col3 = ['WQ', '.', '.', '.', '.', '.', 'BP', 'BQ']
-col4 = ['WK', '.', '.', '.', '.', '.', 'BP', 'BK']
+col3 = ['WQ', 'WP', '.', '.', '.', '.', 'BP', 'BQ']
+col4 = ['WK', 'WP', '.', '.', '.', '.', 'BP', 'BK']
 col5 = ['WB', 'WP', '.', '.', '.', '.', 'BP', 'BB']
 col6 = ['WN', 'WP', '.', '.', '.', '.', 'BP', 'BN']
 col7 = ['WR', 'WP', '.', '.', '.', '.', 'BP', 'BR']
@@ -20,12 +20,15 @@ double_step_pawn = {'pos': [-1, -1]}
 waiting = {'promote': False, 'pos': [-1, -1]}
 possible_promotions = ['Q', 'R', 'B', 'N']
 current = {'player': 'W'}
-king_info = {'W': {'x': 4, 'y': 0, 'free_space': [], 'check': False}, 'B': {'x': 4, 'y': 7, 'free_space': [], 'check': False}}
+king_info = {'W': {'x': 4, 'y': 3, 'free_space': [], 'check': False, 'save_king': [], 'checkmate': False},
+             'B': {'x': 4, 'y': 7, 'free_space': [], 'check': False, 'save_king': [], 'checkmate': False}}
+
 
 @socketio.on('board')
 def board():
     print('Board')
     update_king_info(current['player'])
+    update_king_info(opponent(current['player']))
     emit('board', {'board': chessBoard, 'king_info': king_info}, broadcast=True)
 
 
@@ -33,7 +36,10 @@ def board():
 def handle_move(move):
     print(move['move'])
     result = legal_move(current['player'], move['move'])
-    emit('board', {'result': result, 'player': current['player'], 'board': chessBoard}, broadcast=True)
+    if 'success' in result:
+        update_king_info(current['player'])
+        update_king_info(opponent(current['player']))
+    emit('board', {'result': result, 'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
 
 
 def legal_move(player, move):
@@ -55,56 +61,110 @@ def legal_move(player, move):
             print("king")
             start = coord_helper(start[1:])
             end = coord_helper(end)
-            if chessBoard[start[0]][start[1]] == player + 'K':
-                return move_king(start, end, player)
-            return 'your king is not in that position'
+            if chessBoard[start[0]][start[1]] == player + 'K' and not_friendly_piece(end, player):
+                result = move_king(start, end, player)
+                if 'success' in result:
+                    update_board(start, end, player + 'K')
+                    king_info[player]['x'] = end[0]
+                    king_info[player]['y'] = end[1]
+                    if check(player):
+                        king_info[player]['x'] = start[0]
+                        king_info[player]['y'] = start[1]
+                        update_board(end, start, player + 'K')
+                        return 'illegal, your king would be in check after that move'
+                    else:
+                        allowed_castling[player + 'K'] = False
+                        next_player()
+                return result
+            return 'illegal, your king is not in that position'
         elif start[0] == 'Q':
             print("queen")
             start = coord_helper(start[1:])
             end = coord_helper(end)
-            if chessBoard[start[0]][start[1]] == player + 'Q':
-                return move_queen(start, end, player)
+            if chessBoard[start[0]][start[1]] == player + 'Q' and not_friendly_piece(end, player):
+                result = move_queen(start, end, player)
+                if 'success' in result:
+                    update_board(start, end, player + 'Q')
+                    if check(player):
+                        update_board(end, start, player + 'Q')
+                        return 'your king would be in check after that move'
+                    else:
+                        next_player()
+                return result
             return 'you don\'t have a queen in that position'
         elif start[0] == 'R':
             print("rook")
             start = coord_helper(start[1:])
             end = coord_helper(end)
-            if chessBoard[start[0]][start[1]] == player + 'R':
-                return move_rook(start, end, player)
+            if chessBoard[start[0]][start[1]] == player + 'R' and not_friendly_piece(end, player):
+                result = move_rook(start, end, player)
+                if 'success' in result:
+                    update_board(start, end, player + 'R')
+                    if check(player):
+                        update_board(end, start, player + 'R')
+                        return 'your king would be in check after that move'
+                    else:
+                        disable_castling(start)
+                        next_player()
+                return result
             return 'you don\'t have a rook in that position'
         elif start[0] == 'B':
             print("bishop")
             start = coord_helper(start[1:])
             end = coord_helper(end)
-            if chessBoard[start[0]][start[1]] == player + 'B':
-                return move_bishop(start, end, player)
+            if chessBoard[start[0]][start[1]] == player + 'B' and not_friendly_piece(end, player):
+                result = move_bishop(start, end, player)
+                if 'success' in result:
+                    update_board(start, end, player + 'B')
+                    if check(player):
+                        update_board(end, start, player + 'B')
+                        return 'your king would be in check after that move'
+                    else:
+                        next_player()
+                return result
             return 'you don\'t have a bishop in that position'
         elif start[0] == 'N':
             print("knight")
             start = coord_helper(start[1:])
             end = coord_helper(end)
-            if chessBoard[start[0]][start[1]] == player + 'N':
-                return move_knight(start, end, player)
+            if chessBoard[start[0]][start[1]] == player + 'N' and not_friendly_piece(end, player):
+                result = move_knight(start, end, player)
+                if 'success' in result:
+                    update_board(start, end, player + 'N')
+                    if check(player):
+                        update_board(end, start, player + 'N')
+                        return 'your king would be in check after that move'
+                    else:
+                        next_player()
+                return result
             return 'you don\'t have a knight in that position'
         else:
             print("pawn")
             start = coord_helper(start)
             end = coord_helper(end)
-            if chessBoard[start[0]][start[1]] == player + 'P':
-                return move_pawn(start, end, player)
+            if chessBoard[start[0]][start[1]] == player + 'P' and not_friendly_piece(end, player):
+                result = move_pawn(start, end, player)
+                if 'success' in result:
+                    update_board(start, end, player + 'N')
+                    if check(player):
+                        update_board(end, start, player + 'N')
+                        return 'your king would be in check after that move'
+                    else:
+                        next_player()
+                return result
             return 'you don\'t have a pawn in that position'
 
 
 def castling(move, player):
     if player == 'W' and allowed_castling['WK']:
-        if move == '0-0' and allowed_castling['WRh1'] and no_pieces_between([4, 0], [7, 0], False):
+        if move == '0-0' and allowed_castling['WRh1'] and no_pieces_between([4, 0], [7, 0], False, player):
             update_board([4, 0], [6, 0], 'WK')
             update_board([7, 0], [5, 0], 'WR')
             allowed_castling['WK'] = False
             allowed_castling['WRh1'] = False
             next_player()
             return 'success'
-        elif move == '0-0-0' and allowed_castling['WRa1'] and no_pieces_between([4, 0], [0, 0], False):
+        elif move == '0-0-0' and allowed_castling['WRa1'] and no_pieces_between([4, 0], [0, 0], False, player):
             update_board([4, 0], [2, 0], 'WK')
             update_board([0, 0], [3, 0], 'WR')
             allowed_castling['WK'] = False
@@ -114,14 +174,14 @@ def castling(move, player):
         else:
             return 'invalid move'
     elif player == 'B' and allowed_castling['BK']:
-        if move == '0-0' and allowed_castling['BRh8'] and no_pieces_between([4, 7], [7, 7], False):
+        if move == '0-0' and allowed_castling['BRh8'] and no_pieces_between([4, 7], [7, 7], False, player):
             update_board([4, 7], [6, 7], 'BK')
             update_board([7, 7], [5, 7], 'BR')
             allowed_castling['BK'] = False
             allowed_castling['BRh8'] = False
             next_player()
             return 'success'
-        elif move == '0-0-0' and allowed_castling['BRa8'] and no_pieces_between([4, 7], [0, 7], False):
+        elif move == '0-0-0' and allowed_castling['BRa8'] and no_pieces_between([4, 7], [0, 7], False, player):
             update_board([4, 7], [2, 7], 'BK')
             update_board([0, 7], [3, 7], 'BR')
             allowed_castling['BK'] = False
@@ -137,10 +197,7 @@ def castling(move, player):
 def move_king(start, end, player):
     x_diff = start[0] - end[0]
     y_diff = start[1] - end[1]
-    if abs(x_diff) < 2 and abs(y_diff) < 2 and on_board(end) and not_friendly_piece(end, player):
-        allowed_castling[player + 'K'] = False
-        update_board(start, end, player + 'K')
-        next_player()
+    if abs(x_diff) < 2 and abs(y_diff) < 2 and on_board(end):
         return 'success'
     return 'illegal king move'
 
@@ -148,14 +205,10 @@ def move_king(start, end, player):
 def move_queen(start, end, player):
     x_diff = start[0] - end[0]
     y_diff = start[1] - end[1]
-    if on_board(end) and not_friendly_piece(end, player):
-        if abs(x_diff) == abs(y_diff) != 0 and no_pieces_between(start, end, False):
-            update_board(start, end, player + 'Q')
-            next_player()
+    if on_board(end):
+        if abs(x_diff) == abs(y_diff) != 0 and no_pieces_between(start, end, False, player):
             return 'success'
-        elif (x_diff == 0 != y_diff or x_diff != 0 == y_diff) and no_pieces_between(start, end, False):
-            update_board(start, end, player + 'Q')
-            next_player()
+        elif (x_diff == 0 != y_diff or x_diff != 0 == y_diff) and no_pieces_between(start, end, False, player):
             return 'success'
     return 'illegal queen move'
 
@@ -163,11 +216,8 @@ def move_queen(start, end, player):
 def move_rook(start, end, player):
     x_diff = start[0] - end[0]
     y_diff = start[1] - end[1]
-    if on_board(end) and not_friendly_piece(end, player) and x_diff == 0 != y_diff \
-            and no_pieces_between(start, end, False):
-        disable_castling(start)
-        update_board(start, end, player + 'R')
-        next_player()
+    if on_board(end) and (x_diff == 0 != y_diff or y_diff == 0 != x_diff)\
+            and no_pieces_between(start, end, False, player):
         return 'success'
     return 'illegal rook move'
 
@@ -175,10 +225,7 @@ def move_rook(start, end, player):
 def move_bishop(start, end, player):
     x_diff = start[0] - end[0]
     y_diff = start[1] - end[1]
-    if on_board(end) and not_friendly_piece(end, player) and abs(x_diff) == abs(y_diff) != 0 \
-            and no_pieces_between(start, end, False):
-        update_board(start, end, player + 'B')
-        next_player()
+    if on_board(end) and abs(x_diff) == abs(y_diff) != 0 and no_pieces_between(start, end, False, player):
         return 'success'
     return 'illegal bishop move'
 
@@ -186,10 +233,7 @@ def move_bishop(start, end, player):
 def move_knight(start, end, player):
     x_diff = start[0] - end[0]
     y_diff = start[1] - end[1]
-    if on_board(end) and not_friendly_piece(end, player)\
-            and (abs(x_diff) == 2 and abs(y_diff) == 1 or abs(x_diff) == 1 and abs(y_diff) == 2):
-        update_board(start, end, player + 'N')
-        next_player()
+    if on_board(end) and (abs(x_diff) == 2 and abs(y_diff) == 1 or abs(x_diff) == 1 and abs(y_diff) == 2):
         return 'success'
     return 'illegal knight move'
 
@@ -197,9 +241,9 @@ def move_knight(start, end, player):
 def move_pawn(start, end, player):
     x_diff = start[0] - end[0]
     y_diff = start[1] - end[1]
-    if on_board(end) and not_friendly_piece(end, player):
+    if on_board(end):
         if x_diff == 0:
-            if y_diff == player_dir(player) and no_pieces_between(start, end, True):
+            if y_diff == player_dir(player) and no_pieces_between(start, end, True, player):
                 update_board(start, end, player + 'P')
                 if end[1] == 0 or end[1] == 7:
                     waiting['promote'] = True
@@ -207,13 +251,13 @@ def move_pawn(start, end, player):
                 else:
                     next_player()
                 return 'success'
-            elif y_diff == 2 * player_dir(player) and first_move_pawn(start, player) and no_pieces_between(start, end, True):
+            elif y_diff == 2 * player_dir(player) and first_move_pawn(start, player) and no_pieces_between(start, end, True, player):
                 update_board(start, end, player + 'P')
                 double_step_pawn['pos'] = end
                 next_player()
                 return 'success'
         elif abs(x_diff) == 1 and y_diff == player_dir(player):
-            if opp_player(end, player):
+            if opp_piece(end, player):
                 update_board(start, end, player + 'P')
                 if end[1] == 0 or end[1] == 7:
                     waiting['promote'] = True
@@ -229,7 +273,7 @@ def move_pawn(start, end, player):
     return 'illegal pawn move'
 
 
-def no_pieces_between(s, e, include_last):
+def no_pieces_between(s, e, include_last, player):
     start = s.copy()
     end = e.copy()
     x_diff = 0
@@ -243,7 +287,7 @@ def no_pieces_between(s, e, include_last):
         end[1] += y_diff
     while start != end:
         start = [start[0] - x_diff, start[1] - y_diff]
-        if chessBoard[start[0]][start[1]] != '.':
+        if chessBoard[start[0]][start[1]] != '.' and chessBoard[start[0]][start[1]] != opponent(player) + 'K':
             return False
     return True
 
@@ -275,7 +319,7 @@ def first_move_pawn(start, player):
 
 def passant(end, player):
     opp_pawn = [end[0], end[1] + player_dir(player)]
-    if double_step_pawn['pos'] == opp_pawn and opp_player(opp_pawn, player):
+    if double_step_pawn['pos'] == opp_pawn and opp_piece(opp_pawn, player):
             return True
     return False
 
@@ -286,7 +330,7 @@ def player_dir(player):
     return -1
 
 
-def opp_player(end, player):
+def opp_piece(end, player):
     if list(chessBoard[end[0]][end[1]])[0] == 'W' and player == 'B':
         return True
     elif list(chessBoard[end[0]][end[1]])[0] == 'B' and player == 'W':
@@ -301,13 +345,15 @@ def on_board(end):
 
 
 def not_friendly_piece(end, player):
-    if list(chessBoard[end[0]][end[1]])[0] != player:
+    if list(chessBoard[end[0]][end[1]])[0] == opponent(player):
         return True
     return False
 
 
 def friendly_piece(end, player):
-    return not not_friendly_piece(end, player)
+    if list(chessBoard[end[0]][end[1]])[0] == player:
+        return True
+    return False
 
 
 def coord_helper(coord):
@@ -332,30 +378,149 @@ def opponent(player):
 
 def update_king_info(player):
     king = king_info[player]
-    king['freespace'] = []
+    king['free_space'] = []
+    king['save_king'] = []
     for i in range(-1, 2):
         for j in range(-1, 2):
             # pos = chessBoard[king['x']+i][king['y']+j]
             if on_board([king['x']+i, king['y']+j]):
                 king['free_space'].append([king['x']+i, king['y']+j])
-    if len(king['freespace']) != 0:
+    if len(king['free_space']) != 0:
         for i in range(0, 8):
             for j in range(0, 8):
                 if not_friendly_piece([i, j], player):
                     check_threatened_squares([i, j], player)
     # and (pos == '.' or not_friendly_piece([king['x']+i, king['y']+j], player))
 
+
 def check_threatened_squares(pos, player):
-    print('checking threatened squares')
     if chessBoard[pos[0]][pos[1]] == opponent(player) + 'Q':
-        queen_threat(pos, player)
+        threat(pos, player, move_queen)
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'R':
+        threat(pos, player, move_rook)
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'B':
+        threat(pos, player, move_bishop)
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'N':
+        threat(pos, player, move_knight)
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'P':
+        threat(pos, player, threat_pawn)
 
 
-def queen_threat(pos, player):
-    surrounding_squares = king_info[player]['free_space']
-    for x in range(0, surrounding_squares):
-        if 'success' in move_queen(pos, surrounding_squares[x], opponent(player)):
-            print('todo implement')
+def threat(pos, player, move_fun):
+    king = king_info[player]
+    surrounding_squares = king['free_space']
+    remove = []
+    for x in range(0, len(surrounding_squares)):
+        if 'success' in move_fun(pos, surrounding_squares[x], opponent(player)):
+            remove.append(x)
+    for x in range(len(remove)-1, -1, -1):
+        del surrounding_squares[remove[x]]
+    if 'success' in move_fun(pos, [king['x'], king['y']], opponent(player)):
+        king['check'] = True
+        if list(chessBoard[pos[0]][pos[1]])[1] == 'N':
+            king['save_king'].append([pos])
+        else:
+            king['save_king'].append(squares_between(pos, [king['x'], king['y']]))
+    blocked_by_friendly(surrounding_squares, player)
+    if len(king['free_space']) == 0:
+        saved = save_king(king['save_king'], player)
+        if not saved:
+            king['checkmate'] = True
+
+
+def save_king(threats, player):
+    if len(threats) > 1:
+        return False
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if friendly_piece([i, j], player):
+                if chessBoard[i][j] == player + 'Q':
+                    if save_helper([i, j], threats[0], move_queen, player):
+                        return True
+                elif chessBoard[i][j] == player + 'R':
+                    if save_helper([i, j], threats[0], move_rook, player):
+                        return True
+                elif chessBoard[i][j] == player + 'B':
+                    if save_helper([i, j], threats[0], move_bishop, player):
+                        return True
+                elif chessBoard[i][j] == player + 'N':
+                    if save_helper([i, j], threats[0], move_knight, player):
+                        return True
+                elif chessBoard[i][j] == player + 'P':
+                    if save_helper([i, j], threats[0], threat_pawn, player):
+                        return True
+    return False
+
+
+def save_helper(start, block_squares, move_fun, player):
+    print(block_squares)
+    for x in range(0, len(block_squares)):
+        print(block_squares[x])
+        if 'success' in move_fun(start, block_squares[x], player):
+            return True
+    return False
+
+
+def blocked_by_friendly(surrounding_squares, player):
+    remove = []
+    for x in range(0, len(surrounding_squares)):
+        if friendly_piece(surrounding_squares[x], player):
+            remove.append(x)
+    for x in range(len(remove) - 1, -1, -1):
+        del surrounding_squares[remove[x]]
+
+
+def check(player):
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if not_friendly_piece([i, j], player):
+                if check_helper([i, j], player):
+                    return True
+    return False
+
+
+def check_helper(pos, player):
+    king = king_info[player]
+    if chessBoard[pos[0]][pos[1]] == opponent(player) + 'Q':
+        if 'success' in move_queen(pos, [king['x'], king['y']], opponent(player)):
+            return True
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'R':
+        if 'success' in move_rook(pos, [king['x'], king['y']], opponent(player)):
+            return True
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'B':
+        if 'success' in move_bishop(pos, [king['x'], king['y']], opponent(player)):
+            return True
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'N':
+        if 'success' in move_knight(pos, [king['x'], king['y']], opponent(player)):
+            return True
+    elif chessBoard[pos[0]][pos[1]] == opponent(player) + 'P':
+        if 'success' in threat_pawn(pos, [king['x'], king['y']], opponent(player)):
+            return True
+    return False
+
+
+def threat_pawn(start, end, player):
+    x_diff = start[0] - end[0]
+    y_diff = start[1] - end[1]
+    if abs(x_diff) == 1 and y_diff == player_dir(player):
+        return 'success'
+    return 'fail'
+
+
+def squares_between(s, e):
+    squares = []
+    start = s.copy()
+    end = e.copy()
+    x_diff = 0
+    y_diff = 0
+    if start[0] - end[0] != 0:
+        x_diff = int((start[0] - end[0]) / abs(start[0] - end[0]))
+    if start[1] - end[1] != 0:
+        y_diff = int((start[1] - end[1]) / abs(start[1] - end[1]))
+    while start != end:
+        squares.append(start)
+        start = [start[0] - x_diff, start[1] - y_diff]
+    return squares
 
 
 if __name__ == '__main__':
