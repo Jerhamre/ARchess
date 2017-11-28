@@ -6,6 +6,8 @@
       <module fileurl="file://C:\Users\Bosse\StudioProjects\ARchess\ARchess.iml" filepath="C:\Users\Bosse\StudioProjects\ARchess\ARchess.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://C:\Users\Bosse\StudioProjects\ARchess\app\app.iml" filepath="C:\Users\Bosse\StudioProjects\ARchess\app\app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/arcore_client/arcore_client.iml" filepath="$PROJECT_DIR$/arcore_client/arcore_client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/obj-0.2.1/obj-0.2.1.iml" filepath="$PROJECT_DIR$/obj-0.2.1/obj-0.2.1.iml" />
     </modules>
   </component>
 </project>

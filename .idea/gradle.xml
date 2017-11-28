@@ -9,6 +9,8 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/arcore_client" />
+            <option value="$PROJECT_DIR$/obj-0.2.1" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />
