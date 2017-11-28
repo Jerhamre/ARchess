@@ -11,23 +11,29 @@ import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.github.nkzawa.emitter.Emitter;
+import com.github.nkzawa.socketio.client.IO;
+import com.github.nkzawa.socketio.client.Socket;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.URISyntaxException;
+//import java.net.Socket;
 
 public class NetworkHandler extends Service {
-    InputStream socketInput;
-    ByteArrayOutputStream byteArrayOutputStream;
-    String SERVER_IP = "127.0.0.1";
-    int SERVER_PORT = 8000;
-    Socket socket;
+    String SERVER_IP = "155.4.193.106";
+    int SERVER_PORT = 5000;
 
     NetworkListener NL = null;
     NetworkCommunication NC = null;
 
-    Thread t = null;
-    Thread r = null;
 
     String response = "";
 
@@ -36,14 +42,32 @@ public class NetworkHandler extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d("test", "NetworkHandler Started" + android.os.Process.myTid());
 
-        NL = new NetworkListener();
-        t = new Thread(NL);
-        t.start();
+        /*try {
+            socket = new Socket(SERVER_IP, SERVER_PORT);
+            //socketInput = socket.getInputStream();
+            //byteArrayOutputStream = new ByteArrayOutputStream(1024);
+*/
+            NL = new NetworkListener(null, "Gradle");
+            new Thread(NL).start();
+
+
+            SystemClock.sleep(5000);
+
+            //NL.sendMessage("board");
+
+            //new Thread(new NetworkCommunication("Hej")).start();
+
+        /*} catch (IOException e) {
+            e.printStackTrace();
+        }*/
+
         //new Thread(NL).start();
 
+        /*
         NC = new NetworkCommunication();
         r = new Thread(NC);
         r.start();
+*/
 
         return START_STICKY;
     }
@@ -56,59 +80,141 @@ public class NetworkHandler extends Service {
 
 
     class NetworkListener implements Runnable {
+        Socket socket = null;
+        InputStream socketInput = null;
+        String msg = "";
+        ByteArrayOutputStream byteArrayOutputStream = null;
+        String response = "";
+
+        public NetworkListener(Socket socket, String msg) {
+            Log.d("test", "Network Listener" + android.os.Process.myTid() + " Args: " + msg);
+
+            this.socket = socket;
+            this.msg = msg;
+            //try {
+                //this.socketInput = socket.getInputStream();
+            /*} catch (IOException e) {
+                e.printStackTrace();
+            }*/
+        }
+
         @Override
         public void run() {
-            Log.d("test", "Network Listener run" + android.os.Process.myTid());
+            Log.d("test", "Network Listener run" + android.os.Process.myTid() + " Args: " + msg);
 
+                try {
+                    this.socket =  IO.socket("http://" + SERVER_IP + ":" + SERVER_PORT);
+                    this.socket.on("board", onNewMessage);
+                    this.socket.connect();
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
+                Log.d("test", "Socket done" + android.os.Process.myTid());
+
+                //this.socketInput = this.socket.getInputStream();
+                //this.byteArrayOutputStream = new ByteArrayOutputStream(1024);
+
+            sendMessage("move");
+            SystemClock.sleep(3000);
             listener();
-
-            /*
-            try {
-                Log.d("test", "Network Listener Run");
-
-
-                socket = new Socket(SERVER_IP, SERVER_PORT);
-                socketInput = socket.getInputStream();
-                byteArrayOutputStream = new ByteArrayOutputStream(1024);
-                listener();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-*/
         }
 
         public void listener() {
             int bytesRead;
             byte[] buffer = new byte[1024];
-            Log.d("test", "Network Listener listener" + android.os.Process.myTid());
 
-            //r.run();
 
-            //r.NC.handleMessage("Hej");
+            Log.d("test", "Network Listener listener" + android.os.Process.myTid() + " Args: " + msg);
+
+
             /*try {
-                while((bytesRead = socketInput.read(buffer)) != -1) {
-                    byteArrayOutputStream.write(buffer, 0, bytesRead);
-                    response += byteArrayOutputStream.toString("UTF-8");
+                while((bytesRead = this.socketInput.read(buffer)) != -1) {
+                    this.byteArrayOutputStream.write(buffer, 0, bytesRead);
+                    this.response += byteArrayOutputStream.toString("UTF-8");
                 }
+                Log.d("test", response);
+
+                //new Thread(new NetworkCommunication("Test")).start();
 
 
-                //listener();
+                listener();
             } catch (IOException e) {
                 e.printStackTrace();
-            }*/
+            }
+            */
+        }
+
+        private Emitter.Listener onNewMessage = new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+
+                JSONObject data = (JSONObject) args[0];
+                Log.d("test", data.toString() + "\n" + android.os.Process.myTid());
+
+                /*String username;
+                String message;
+                try {
+                    username = data.getString("username");
+                    message = data.getString("message");
+                } catch (JSONException e) {
+                    return;
+                }*/
+
+            }
+        };
+
+
+        public void handleMessage(JSONObject msg) {
+            Log.d("test", msg.toString());
+        }
+
+        public void sendMessage(String msg) {
+
+            Log.d("test", "Message: " + msg);
+            JSONObject chessMove = new JSONObject();
+            try {
+                chessMove.put("move", "b2-b4");
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            socket.emit("move", chessMove);
+            //BufferedWriter outToServer = null;
+
+            /*
+            try {
+                outToServer = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                outToServer.write(msg);
+                outToServer.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            */
+            //outToServer.flush();
+
+            Log.d("test", msg + android.os.Process.myTid());
+
         }
     }
 
     static class NetworkCommunication implements Runnable {
 
+        public NetworkCommunication(String test)
+        {
+            Log.d("test", "Communication " + android.os.Process.myTid() + " Args: " + test);
+        }
         @Override
         public void run() {
+            sendMessage("board");
             Log.d("test", "Communication " + android.os.Process.myTid());
 
         }
 
         public void sendMessage(String msg) {
+
             Log.d("test", msg + android.os.Process.myTid());
 
         }
