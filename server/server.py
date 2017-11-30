@@ -20,8 +20,25 @@ double_step_pawn = {'pos': [-1, -1]}
 waiting = {'promote': False, 'pos': [-1, -1]}
 possible_promotions = ['Q', 'R', 'B', 'N']
 current = {'player': 'W'}
+players = {'W': '', 'B': ''}
 king_info = {'W': {'x': 4, 'y': 3, 'free_space': [], 'check': False, 'save_king': [], 'checkmate': False},
              'B': {'x': 4, 'y': 7, 'free_space': [], 'check': False, 'save_king': [], 'checkmate': False}}
+
+
+@socketio.on('join')
+def join(player):
+    print('player joined ', player)
+    if players['W'] == '' or players['W'] == player:
+        players['W'] = player
+        emit('joined', {'board': chessBoard, 'you': 'W'})
+    elif players['B'] == '' or players['B'] == player:
+        players['B'] = player
+        emit('joined', {'board': chessBoard, 'you': 'B'})
+    else:
+        emit('joined', {'board': chessBoard, 'you': 'observer'})
+    if players['W'] != '' and players['B'] != '':
+        emit('board', {'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
+
 
 
 @socketio.on('board')
@@ -37,6 +54,7 @@ def handle_move(move):
     print(move['move'])
     result = legal_move(current['player'], move['move'])
     if 'success' in result:
+        king_info[current['player']]['check'] = False
         update_king_info(current['player'])
         update_king_info(opponent(current['player']))
     emit('board', {'result': result, 'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
@@ -382,7 +400,6 @@ def update_king_info(player):
     king['save_king'] = []
     for i in range(-1, 2):
         for j in range(-1, 2):
-            # pos = chessBoard[king['x']+i][king['y']+j]
             if on_board([king['x']+i, king['y']+j]):
                 king['free_space'].append([king['x']+i, king['y']+j])
     if len(king['free_space']) != 0:
@@ -390,7 +407,6 @@ def update_king_info(player):
             for j in range(0, 8):
                 if not_friendly_piece([i, j], player):
                     check_threatened_squares([i, j], player)
-    # and (pos == '.' or not_friendly_piece([king['x']+i, king['y']+j], player))
 
 
 def check_threatened_squares(pos, player):
@@ -422,7 +438,7 @@ def threat(pos, player, move_fun):
         else:
             king['save_king'].append(squares_between(pos, [king['x'], king['y']]))
     blocked_by_friendly(surrounding_squares, player)
-    if len(king['free_space']) == 0:
+    if len(king['free_space']) == 0 and king['check']:
         saved = save_king(king['save_king'], player)
         if not saved:
             king['checkmate'] = True

@@ -7,9 +7,9 @@
 <body>
 <script type="text/javascript">
 $(document).ready(function() {
-	var socket = io.connect('http://127.0.0.1:5000');
+	var socket = io.connect('http://127.0.0.1:5000', query_string='2');
 	socket.on('connect', function() {
-		socket.emit('join', {'user': '1'});
+		//socket.emit('join', {'user': '2'});
 	});
 	socket.on('message', function(msg) {
 		$("#messages").append('<li>'+msg+'</li>');
@@ -30,7 +30,7 @@ $(document).ready(function() {
 	});
 });
 </script>
-<p>User 1</p>
+<p>User 2</p>
 <ul id="messages"></ul>
 <input type="text" id="myMessage">
 <button id="sendbutton">Send</button>
