@@ -12,13 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.ar.core.examples.java.helloar.rendering;
+package com.google.ar.core.examples.java.archess.rendering;
 
 import com.google.ar.core.Frame;
 import com.google.ar.core.Plane;
 import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
-import com.google.ar.core.examples.java.helloar.R;
+import com.google.ar.core.examples.java.archess.R;
 
 import android.content.Context;
 import android.graphics.Bitmap;

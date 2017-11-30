@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.ar.core.examples.java.helloar;
+package com.google.ar.core.examples.java.archess;
 
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
@@ -23,12 +23,12 @@ import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
 import com.google.ar.core.PlaneHitResult;
 import com.google.ar.core.Session;
-import com.google.ar.core.examples.java.helloar.rendering.BackgroundRenderer;
-import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer;
-import com.google.ar.core.examples.java.helloar.rendering.ObjectRenderer.BlendMode;
-import com.google.ar.core.examples.java.helloar.rendering.PlaneAttachment;
-import com.google.ar.core.examples.java.helloar.rendering.PlaneRenderer;
-import com.google.ar.core.examples.java.helloar.rendering.PointCloudRenderer;
+import com.google.ar.core.examples.java.archess.rendering.BackgroundRenderer;
+import com.google.ar.core.examples.java.archess.rendering.ObjectRenderer;
+import com.google.ar.core.examples.java.archess.rendering.ObjectRenderer.BlendMode;
+import com.google.ar.core.examples.java.archess.rendering.PlaneAttachment;
+import com.google.ar.core.examples.java.archess.rendering.PlaneRenderer;
+import com.google.ar.core.examples.java.archess.rendering.PointCloudRenderer;
 
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -55,8 +55,8 @@ import javax.microedition.khronos.opengles.GL10;
  * the ARCore API. The application will display any detected planes and will allow the user to
  * tap on a plane to place a 3d model of the Android robot.
  */
-public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
-    private static final String TAG = HelloArActivity.class.getSimpleName();
+public class MainActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
     private GLSurfaceView mSurfaceView;
@@ -319,7 +319,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             @Override
             public void run() {
                 mLoadingMessageSnackbar = Snackbar.make(
-                    HelloArActivity.this.findViewById(android.R.id.content),
+                    MainActivity.this.findViewById(android.R.id.content),
                     "Searching for surfaces...", Snackbar.LENGTH_INDEFINITE);
                 mLoadingMessageSnackbar.getView().setBackgroundColor(0xbf323232);
                 mLoadingMessageSnackbar.show();

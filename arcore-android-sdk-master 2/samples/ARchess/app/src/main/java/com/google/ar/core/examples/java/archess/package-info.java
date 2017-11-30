@@ -16,4 +16,4 @@
 /**
  * A sample showing how to build an Augmented Reality app using ARCore.
  */
-package com.google.ar.core.examples.java.helloar;
+package com.google.ar.core.examples.java.archess;
