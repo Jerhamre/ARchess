@@ -22,8 +22,7 @@ $(document).ready(function() {
 		console.log('joined', msg);
 	});
 	$('#sendbutton').on('click', function() {
-		socket.emit('move', {'move': $('#myMessage').val()});
-		$('#myMessage').val('');
+		socket.emit('move', {'move': $('#myMessage').val(), 'user': '1'});
 	});
 	$('#boardbutton').on('click', function() {
 		socket.emit('board');

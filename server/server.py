@@ -28,11 +28,11 @@ king_info = {'W': {'x': 4, 'y': 3, 'free_space': [], 'check': False, 'save_king'
 @socketio.on('join')
 def join(player):
     print('player joined ', player)
-    if players['W'] == '' or players['W'] == player:
-        players['W'] = player
+    if players['W'] == '' or players['W'] == player['user']:
+        players['W'] = player['user']
         emit('joined', {'board': chessBoard, 'you': 'W'})
-    elif players['B'] == '' or players['B'] == player:
-        players['B'] = player
+    elif players['B'] == '' or players['B'] == player['user']:
+        players['B'] = player['user']
         emit('joined', {'board': chessBoard, 'you': 'B'})
     else:
         emit('joined', {'board': chessBoard, 'you': 'observer'})
@@ -51,13 +51,16 @@ def board():
 
 @socketio.on('move')
 def handle_move(move):
-    print(move['move'])
-    result = legal_move(current['player'], move['move'])
-    if 'success' in result:
-        king_info[current['player']]['check'] = False
-        update_king_info(current['player'])
-        update_king_info(opponent(current['player']))
-    emit('board', {'result': result, 'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
+    print(move['move'], 'user: ', move['user'], 'white: ', players['W'], 'black ', players['B'])
+    if players[current['player']] == move['user']:
+        result = legal_move(current['player'], move['move'])
+        if 'success' in result:
+            king_info[current['player']]['check'] = False
+            update_king_info(current['player'])
+            update_king_info(opponent(current['player']))
+        emit('board', {'result': result, 'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
+    else:
+        emit('board', 'it\'s not your move')
 
 
 def legal_move(player, move):
@@ -160,6 +163,9 @@ def legal_move(player, move):
             print("pawn")
             start = coord_helper(start)
             end = coord_helper(end)
+            print('piece ', chessBoard[start[0]][start[1]])
+            print('player', player)
+            print ('not_friendly_piece ', not_friendly_piece(end, player))
             if chessBoard[start[0]][start[1]] == player + 'P' and not_friendly_piece(end, player):
                 result = move_pawn(start, end, player)
                 if 'success' in result:
@@ -167,7 +173,7 @@ def legal_move(player, move):
                     if check(player):
                         update_board(end, start, player + 'N')
                         return 'your king would be in check after that move'
-                    else:
+                    elif not waiting['promote']:
                         next_player()
                 return result
             return 'you don\'t have a pawn in that position'
@@ -266,13 +272,10 @@ def move_pawn(start, end, player):
                 if end[1] == 0 or end[1] == 7:
                     waiting['promote'] = True
                     return 'success, promote pawn'
-                else:
-                    next_player()
                 return 'success'
             elif y_diff == 2 * player_dir(player) and first_move_pawn(start, player) and no_pieces_between(start, end, True, player):
                 update_board(start, end, player + 'P')
                 double_step_pawn['pos'] = end
-                next_player()
                 return 'success'
         elif abs(x_diff) == 1 and y_diff == player_dir(player):
             if opp_piece(end, player):
@@ -280,13 +283,10 @@ def move_pawn(start, end, player):
                 if end[1] == 0 or end[1] == 7:
                     waiting['promote'] = True
                     return 'success, promote pawn'
-                else:
-                    next_player()
                 return 'success'
             elif passant(end, player):
                 chessBoard[end[0]][end[1] + player_dir(player)] = '.'
                 update_board(start, end, player + 'P')
-                next_player()
                 return 'success'
     return 'illegal pawn move'
 
@@ -363,7 +363,7 @@ def on_board(end):
 
 
 def not_friendly_piece(end, player):
-    if list(chessBoard[end[0]][end[1]])[0] == opponent(player):
+    if list(chessBoard[end[0]][end[1]])[0] == opponent(player) or list(chessBoard[end[0]][end[1]])[0] == '.':
         return True
     return False
 
@@ -385,7 +385,9 @@ def col_number(col):
 
 
 def next_player():
+    print('current', current['player'])
     current['player'] = opponent(current['player'])
+    print('next', current['player'])
 
 
 def opponent(player):
@@ -540,4 +542,4 @@ def squares_between(s, e):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
+    socketio.run(app, host='127.0.0.1', port=5000)
