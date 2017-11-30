@@ -30,9 +30,14 @@ import com.google.ar.core.examples.java.archess.rendering.PlaneAttachment;
 import com.google.ar.core.examples.java.archess.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.archess.rendering.PointCloudRenderer;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -56,6 +61,11 @@ import javax.microedition.khronos.opengles.GL10;
  * tap on a plane to place a 3d model of the Android robot.
  */
 public class MainActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
+    Intent networkHandler = null;
+
+    NetworkHandler mService;
+    boolean mBound = false;
+
     private static final String TAG = MainActivity.class.getSimpleName();
 
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
@@ -83,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        createNetworkHandler();
         mSurfaceView = (GLSurfaceView) findViewById(R.id.surfaceview);
 
         mSession = new Session(/*context=*/this);
@@ -177,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     private void onSingleTap(MotionEvent e) {
         // Queue tap if there is space. Tap is lost if queue is full.
+        mService.sendMessage();
         mQueuedSingleTaps.offer(e);
     }
 
@@ -336,4 +348,31 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             }
         });
     }
+
+    private void createNetworkHandler() {
+        if (networkHandler == null) {
+            networkHandler = new Intent(this, NetworkHandler.class);
+        }
+        bindService(networkHandler, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            NetworkHandler.LocalBinder binder = (NetworkHandler.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+            Log.d("test", "Service Bound. Thread: " + android.os.Process.myTid());
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            Log.d("test", "Service Stopped. Thread: " + android.os.Process.myTid());
+            mBound = false;
+        }
+    };
 }
