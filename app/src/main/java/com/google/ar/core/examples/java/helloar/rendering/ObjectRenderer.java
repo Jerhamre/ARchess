@@ -58,7 +58,8 @@ public class ObjectRenderer {
     private static final float[] LIGHT_DIRECTION = new float[] { 0.0f, 1.0f, 0.0f, 0.0f };
     private float[] mViewLightDirection = new float[4];
 
-    StaticMesh myMesh;
+    //StaticMesh myMesh;
+    StaticMesh meshChessPieces[];
 
     private int mProgram;
     private int[] mTextures = new int[1];
@@ -101,10 +102,9 @@ public class ObjectRenderer {
      * Creates and initializes OpenGL resources needed for rendering the model.
      *
      * @param context Context for loading the shader and below-named model and texture assets.
-     * @param objAssetName  Name of the OBJ file containing the model geometry.
      * @param diffuseTextureAssetName  Name of the PNG file containing the diffuse texture map.
      */
-    public void createOnGlThread(Context context, String objAssetName,
+    public void createOnGlThread(Context context,
                                  String diffuseTextureAssetName) throws IOException {
         // Read the texture.
         Bitmap textureBitmap = BitmapFactory.decodeStream(
@@ -126,79 +126,112 @@ public class ObjectRenderer {
 
         ShaderUtil.checkGLError(TAG, "Texture loading");
 
-        // Read the obj file.
-        InputStream objInputStream = context.getAssets().open(objAssetName);
-        Obj obj = ObjReader.read(objInputStream);
 
-        // Prepare the Obj so that its structure is suitable for
-        // rendering with OpenGL:
-        // 1. Triangulate it
-        // 2. Make sure that texture coordinates are not ambiguous
-        // 3. Make sure that normals are not ambiguous
-        // 4. Convert it to single-indexed data
-        obj = ObjUtils.convertToRenderable(obj);
+        meshChessPieces = new StaticMesh[6];
+        for(int i=0;i<6;i++) {
+            String objAssetName = "andy.obj"; // andy default
+            switch(i){
+                case 0:
+                    objAssetName = "pawn.obj";
+                    break;
+                case 1:
+                    objAssetName = "bishop.obj";
+                    break;
+                case 2:
+                    objAssetName = "knight.obj";
+                    break;
+                case 3:
+                    objAssetName = "rook.obj";
+                    break;
+                case 4:
+                    objAssetName = "queen.obj";
+                    break;
+                case 5:
+                    objAssetName = "king.obj";
+                    break;
+            }
 
-        // OpenGL does not use Java arrays. ByteBuffers are used instead to provide data in a format
-        // that OpenGL understands.
 
-        // Obtain the data from the OBJ, as direct buffers:
-        IntBuffer wideIndices = ObjData.getFaceVertexIndices(obj, 3);
-        FloatBuffer vertices = ObjData.getVertices(obj);
-        FloatBuffer texCoords = ObjData.getTexCoords(obj, 2);
-        FloatBuffer normals = ObjData.getNormals(obj);
+            // Read the obj file.
+            InputStream objInputStream = context.getAssets().open(objAssetName);
+            Obj obj = ObjReader.read(objInputStream);
 
-        // Convert int indices to shorts for GL ES 2.0 compatibility
-        ShortBuffer indices = ByteBuffer.allocateDirect(2 * wideIndices.limit())
-            .order(ByteOrder.nativeOrder()).asShortBuffer();
-        while (wideIndices.hasRemaining()) {
-            indices.put((short) wideIndices.get());
+            // Prepare the Obj so that its structure is suitable for
+            // rendering with OpenGL:
+            // 1. Triangulate it
+            // 2. Make sure that texture coordinates are not ambiguous
+            // 3. Make sure that normals are not ambiguous
+            // 4. Convert it to single-indexed data
+            obj = ObjUtils.convertToRenderable(obj);
+
+            // OpenGL does not use Java arrays. ByteBuffers are used instead to provide data in a format
+            // that OpenGL understands.
+
+            // Obtain the data from the OBJ, as direct buffers:
+            IntBuffer wideIndices = ObjData.getFaceVertexIndices(obj, 3);
+            FloatBuffer vertices = ObjData.getVertices(obj);
+            FloatBuffer texCoords = ObjData.getTexCoords(obj, 2);
+            FloatBuffer normals = ObjData.getNormals(obj);
+
+            // Convert int indices to shorts for GL ES 2.0 compatibility
+            ShortBuffer indices = ByteBuffer.allocateDirect(2 * wideIndices.limit())
+                    .order(ByteOrder.nativeOrder()).asShortBuffer();
+            while (wideIndices.hasRemaining()) {
+                indices.put((short) wideIndices.get());
+            }
+            indices.rewind();
+
+            // ----
+
+            meshChessPieces[i] = new StaticMesh();
+
+            int[] buffers = new int[2];
+            GLES20.glGenBuffers(2, buffers, 0);
+            meshChessPieces[i].mVertexBufferId = buffers[0];
+            meshChessPieces[i].mIndexBufferId = buffers[1];
+
+            // Load vertex buffer
+            meshChessPieces[i].mVerticesBaseAddress = 0;
+            meshChessPieces[i].mTexCoordsBaseAddress = meshChessPieces[i].mVerticesBaseAddress + 4 * vertices.limit();
+            meshChessPieces[i].mNormalsBaseAddress = meshChessPieces[i].mTexCoordsBaseAddress + 4 * texCoords.limit();
+            final int totalBytes = meshChessPieces[i].mNormalsBaseAddress + 4 * normals.limit();
+
+            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, meshChessPieces[i].mVertexBufferId);
+            GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, totalBytes, null, GLES20.GL_STATIC_DRAW);
+            GLES20.glBufferSubData(
+                    GLES20.GL_ARRAY_BUFFER, meshChessPieces[i].mVerticesBaseAddress, 4 * vertices.limit(), vertices);
+            GLES20.glBufferSubData(
+                    GLES20.GL_ARRAY_BUFFER, meshChessPieces[i].mTexCoordsBaseAddress, 4 * texCoords.limit(), texCoords);
+            GLES20.glBufferSubData(
+                    GLES20.GL_ARRAY_BUFFER, meshChessPieces[i].mNormalsBaseAddress, 4 * normals.limit(), normals);
+            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+
+            // Load index buffer
+            GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, meshChessPieces[i].mIndexBufferId);
+            meshChessPieces[i].mIndexCount = indices.limit();
+            GLES20.glBufferData(
+                    GLES20.GL_ELEMENT_ARRAY_BUFFER, 2 * meshChessPieces[i].mIndexCount, indices, GLES20.GL_STATIC_DRAW);
+            GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+            ShaderUtil.checkGLError(TAG, "OBJ buffer load");
+
+            final int vertexShader = ShaderUtil.loadGLShader(TAG, context,
+                    GLES20.GL_VERTEX_SHADER, R.raw.object_vertex);
+            final int fragmentShader = ShaderUtil.loadGLShader(TAG, context,
+                    GLES20.GL_FRAGMENT_SHADER, R.raw.object_fragment);
+
+            mProgram = GLES20.glCreateProgram();
+            GLES20.glAttachShader(mProgram, vertexShader);
+            GLES20.glAttachShader(mProgram, fragmentShader);
+            GLES20.glLinkProgram(mProgram);
+            GLES20.glUseProgram(mProgram);
+
+            ShaderUtil.checkGLError(TAG, "Program creation");
         }
-        indices.rewind();
 
-        myMesh = new StaticMesh();
 
-        int[] buffers = new int[2];
-        GLES20.glGenBuffers(2, buffers, 0);
-        myMesh.mVertexBufferId = buffers[0];
-        myMesh.mIndexBufferId = buffers[1];
 
-        // Load vertex buffer
-        myMesh.mVerticesBaseAddress = 0;
-        myMesh.mTexCoordsBaseAddress = myMesh.mVerticesBaseAddress + 4 * vertices.limit();
-        myMesh.mNormalsBaseAddress = myMesh.mTexCoordsBaseAddress + 4 * texCoords.limit();
-        final int totalBytes = myMesh.mNormalsBaseAddress + 4 * normals.limit();
 
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, myMesh.mVertexBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, totalBytes, null, GLES20.GL_STATIC_DRAW);
-        GLES20.glBufferSubData(
-            GLES20.GL_ARRAY_BUFFER, myMesh.mVerticesBaseAddress, 4 * vertices.limit(), vertices);
-        GLES20.glBufferSubData(
-            GLES20.GL_ARRAY_BUFFER, myMesh.mTexCoordsBaseAddress, 4 * texCoords.limit(), texCoords);
-        GLES20.glBufferSubData(
-            GLES20.GL_ARRAY_BUFFER, myMesh.mNormalsBaseAddress, 4 * normals.limit(), normals);
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
-
-        // Load index buffer
-        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, myMesh.mIndexBufferId);
-        myMesh.mIndexCount = indices.limit();
-        GLES20.glBufferData(
-            GLES20.GL_ELEMENT_ARRAY_BUFFER, 2 * myMesh.mIndexCount, indices, GLES20.GL_STATIC_DRAW);
-        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
-
-        ShaderUtil.checkGLError(TAG, "OBJ buffer load");
-
-        final int vertexShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_VERTEX_SHADER, R.raw.object_vertex);
-        final int fragmentShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_FRAGMENT_SHADER, R.raw.object_fragment);
-
-        mProgram = GLES20.glCreateProgram();
-        GLES20.glAttachShader(mProgram, vertexShader);
-        GLES20.glAttachShader(mProgram, fragmentShader);
-        GLES20.glLinkProgram(mProgram);
-        GLES20.glUseProgram(mProgram);
-
-        ShaderUtil.checkGLError(TAG, "Program creation");
 
         mModelViewUniform = GLES20.glGetUniformLocation(mProgram, "u_ModelView");
         mModelViewProjectionUniform =
@@ -270,9 +303,10 @@ public class ObjectRenderer {
      * @see #setMaterialProperties(float, float, float, float)
      * @see android.opengl.Matrix
      */
-    public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity) {
-
-        StaticMesh current_mesh = myMesh;
+    public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity, int piece) {
+        if(piece < 0 || piece >= 6)
+            return; // bad input
+        StaticMesh current_mesh = meshChessPieces[piece];
 
 
         ShaderUtil.checkGLError(TAG, "Before draw");

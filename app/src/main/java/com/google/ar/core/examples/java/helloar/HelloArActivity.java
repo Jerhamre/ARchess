@@ -91,6 +91,11 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 test_grid[x][y] = 1;
             }
         }
+        test_grid[2][2] = 2;
+        test_grid[2][3] = 3;
+        test_grid[2][4] = 4;
+        test_grid[2][5] = 5;
+        test_grid[2][6] = 6;
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -201,13 +206,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // Prepare the other rendering objects.
         try {
-            mVirtualObject.createOnGlThread(/*context=*/this, "andy.obj", "andy.png");
+            mVirtualObject.createOnGlThread(/*context=*/this, "andy.png");
             mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            mVirtualObjectShadow.createOnGlThread(/*context=*/this,
-                "andy_shadow.obj", "andy_shadow.png");
-            mVirtualObjectShadow.setBlendMode(BlendMode.Shadow);
-            mVirtualObjectShadow.setMaterialProperties(1.0f, 0.0f, 0.0f, 1.0f);
+
         } catch (IOException e) {
             Log.e(TAG, "Failed to read obj file");
         }
@@ -324,7 +326,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                             continue;
 
                         mVirtualObject.updateModelMatrix(mAnchorMatrix, (x-3.5f) * 0.1f, 0, (y-3.5f) * 0.1f);
-                        mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
+                        mVirtualObject.draw(viewmtx, projmtx, lightIntensity, test_grid[x][y]-1);// chess pieces mesh index start counting at 0, not 1
                     }
                 }
             }
