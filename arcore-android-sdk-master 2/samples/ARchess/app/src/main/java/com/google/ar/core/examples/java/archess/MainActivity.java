@@ -145,50 +145,43 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 chessBoard[x][y] = ".";
             }
         }
-        chessBoard[0][0] = "WP";
-        chessBoard[1][1] = "BB";
-        chessBoard[2][2] = "WN";
-        chessBoard[3][3] = "BR";
-        chessBoard[4][4] = "WQ";
-        chessBoard[5][5] = "BK";
+        // START BOARD, HARDCODED
+        chessBoard[1][0] = "WP";
+        chessBoard[1][1] = "WP";
+        chessBoard[1][2] = "WP";
+        chessBoard[1][3] = "WP";
+        chessBoard[1][4] = "WP";
+        chessBoard[1][5] = "WP";
+        chessBoard[1][6] = "WP";
+        chessBoard[1][7] = "WP";
 
-        test_grid[0][0] = 4;
-        test_grid[0][1] = 3;
-        test_grid[0][2] = 2;
-        test_grid[0][3] = 5;
-        test_grid[0][4] = 6;
-        test_grid[0][5] = 2;
-        test_grid[0][6] = 3;
-        test_grid[0][7] = 4;
+        chessBoard[0][0] = "WR";
+        chessBoard[0][1] = "WN";
+        chessBoard[0][2] = "WB";
+        chessBoard[0][3] = "WQ";
+        chessBoard[0][4] = "WK";
+        chessBoard[0][5] = "WB";
+        chessBoard[0][6] = "WN";
+        chessBoard[0][7] = "WR";
 
-        test_grid[1][0] = 1;
-        test_grid[1][1] = 1;
-        test_grid[1][2] = 1;
-        test_grid[1][3] = 1;
-        test_grid[1][4] = 1;
-        test_grid[1][5] = 1;
-        test_grid[1][6] = 1;
-        test_grid[1][7] = 1;
+        chessBoard[7][0] = "BR";
+        chessBoard[7][1] = "BN";
+        chessBoard[7][2] = "BB";
+        chessBoard[7][3] = "BQ";
+        chessBoard[7][4] = "BK";
+        chessBoard[7][5] = "BB";
+        chessBoard[7][6] = "BN";
+        chessBoard[7][7] = "BR";
 
 
-        test_grid[6][0] = 1;
-        test_grid[6][1] = 1;
-        test_grid[6][2] = 1;
-        test_grid[6][3] = 1;
-        test_grid[6][4] = 1;
-        test_grid[6][5] = 1;
-        test_grid[6][6] = 1;
-        test_grid[6][7] = 1;
-
-        test_grid[7][0] = 4;
-        test_grid[7][1] = 3;
-        test_grid[7][2] = 2;
-        test_grid[7][3] = 5;
-        test_grid[7][4] = 6;
-        test_grid[7][5] = 2;
-        test_grid[7][6] = 3;
-        test_grid[7][7] = 4;
-
+        chessBoard[6][0] = "BP";
+        chessBoard[6][1] = "BP";
+        chessBoard[6][2] = "BP";
+        chessBoard[6][3] = "BP";
+        chessBoard[6][4] = "BP";
+        chessBoard[6][5] = "BP";
+        chessBoard[6][6] = "BP";
+        chessBoard[6][7] = "BP";
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -258,53 +251,52 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         //networkHandler.makeMove(move);
     }
 
+    // updates the gameboard, 
     public void updateBoard(String[][] chessBoard){
-
+        this.chessBoard = chessBoard;
     }
 
+    /*
+      (int type, int color) = convert__(x, y)
+    */
     public int[] getChessPiece(int x, int y){
         int[] answer = new int[2];
         if(chessBoard[x][y] == "."){
             answer[0] = 0;
             answer[1] = 0;
-            return answer;
-        }
-
-        switch(chessBoard[x][y].charAt(0)){
-            case 'W':
-                answer[0] = 0;
-                break;
-            case 'B':
-                answer[0] = 1;
-                break;
-
-        }
-        switch(chessBoard[x][y].charAt(1)){
-            case 'P':
-                answer[1] = 1; // PAWN is 1
-                break;
-            case 'B':
-                answer[1] = 2; // BISHOP is 2
-                break;
-            case 'N':
-                answer[1] = 3; // KNIGHT is 3
-                break;
-            case 'R':
-                answer[1] = 4; // ROOK is 4
-                break;
-            case 'Q':
-                answer[1] = 5; // QUEEN is 5
-                break;
-            case 'K':
-                answer[1] = 6; // KING is 6
-                break;
+        } else{
+            switch(chessBoard[x][y].charAt(0)){
+                case 'W':
+                    answer[0] = 0;
+                    break;
+                case 'B':
+                    answer[0] = 1;
+                    break;
+            }
+            switch(chessBoard[x][y].charAt(1)){
+                case 'P':
+                    answer[1] = 1; // PAWN is 1
+                    break;
+                case 'B':
+                    answer[1] = 2; // BISHOP is 2
+                    break;
+                case 'N':
+                    answer[1] = 3; // KNIGHT is 3
+                    break;
+                case 'R':
+                    answer[1] = 4; // ROOK is 4
+                    break;
+                case 'Q':
+                    answer[1] = 5; // QUEEN is 5
+                    break;
+                case 'K':
+                    answer[1] = 6; // KING is 6
+                    break;
+            }
         }
         return answer;
     }
 
-    /*
-    (int type, int color) = convert__(x, y)
-    */
     @Override
     protected void onResume() {
         super.onResume();
@@ -487,7 +479,17 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                             continue;
 
                         mVirtualObject.updateModelMatrix(mAnchorMatrix, (x-3.5f) * 0.1f, 0, (y-3.5f) * 0.1f);
-                        mVirtualObject.draw(viewmtx, projmtx, lightIntensity, chessPiece[1]-1);// chess pieces mesh index start counting at 0, not 1
+                        float red, green, blue;
+                        if(chessPiece[0] == 0){
+                            red = 1;
+                            green = 0;
+                            blue = 0;
+                        }else{
+                            red = 0;
+                            green = 0;
+                            blue = 1;
+                        }
+                        mVirtualObject.draw(viewmtx, projmtx, lightIntensity, chessPiece[1]-1, red, green, blue);// chess pieces mesh index start counting at 0, not 1
                     }
                 }
             }
@@ -497,6 +499,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             Log.e(TAG, "Exception on the OpenGL thread", t);
         }
     }
+
 
     private void showLoadingMessage() {
         runOnUiThread(new Runnable() {
