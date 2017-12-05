@@ -132,8 +132,8 @@ public class NetworkHandler extends Service {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        socket.emit("move", chessMove);
-        //socket.emit("board");
+        //socket.emit("move", chessMove);
+        socket.emit("board");
     }
 
     public void sendMessage(String event) {
