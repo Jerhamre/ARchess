@@ -155,6 +155,10 @@ public class NetworkHandler extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+    public void startGame () {
+
+    }
+
     public void doDisconnect() {
         socket.disconnect();
     }

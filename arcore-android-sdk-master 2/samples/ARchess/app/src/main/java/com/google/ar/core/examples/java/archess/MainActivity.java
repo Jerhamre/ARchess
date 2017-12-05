@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     Button newGameBtn;
     EditText inputMove;
+    Boolean gameStarted;
 
 
     // current game state
@@ -546,4 +547,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             mBound = false;
         }
     };
+
+    public void startGame() {
+
+    }
 }
