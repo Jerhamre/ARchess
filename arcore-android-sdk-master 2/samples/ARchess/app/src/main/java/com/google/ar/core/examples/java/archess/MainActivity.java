@@ -30,9 +30,14 @@ import com.google.ar.core.examples.java.archess.rendering.PlaneAttachment;
 import com.google.ar.core.examples.java.archess.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.archess.rendering.PointCloudRenderer;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -41,6 +46,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -57,6 +63,20 @@ import javax.microedition.khronos.opengles.GL10;
  * tap on a plane to place a 3d model of the Android robot.
  */
 public class MainActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
+    Intent networkHandler = null;
+
+    NetworkHandler mService;
+    boolean mBound = false;
+
+    Button newGameBtn;
+    EditText inputMove;
+
+
+    // current game state
+    String[][] chessBoard = new String[8][8];
+    private int[][] test_grid;
+    private boolean turn;
+
     private static final String TAG = MainActivity.class.getSimpleName();
 
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
@@ -69,7 +89,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private Snackbar mLoadingMessageSnackbar = null;
 
     private ObjectRenderer mVirtualObject = new ObjectRenderer();
-    private ObjectRenderer mVirtualObjectShadow = new ObjectRenderer();
     private PlaneRenderer mPlaneRenderer = new PlaneRenderer();
     private PointCloudRenderer mPointCloud = new PointCloudRenderer();
 
@@ -82,8 +101,62 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        test_grid = new int[8][8];
+        for(int x=0;x<8;x++) {
+            for (int y = 0; y < 8; y++) {
+                test_grid[x][y] = 0;
+                chessBoard[x][y] = ".";
+            }
+        }
+        chessBoard[0][0] = "WP";
+        chessBoard[1][1] = "BB";
+        chessBoard[2][2] = "WN";
+        chessBoard[3][3] = "BR";
+        chessBoard[4][4] = "WQ";
+        chessBoard[5][5] = "BK";
+
+        test_grid[0][0] = 4;
+        test_grid[0][1] = 3;
+        test_grid[0][2] = 2;
+        test_grid[0][3] = 5;
+        test_grid[0][4] = 6;
+        test_grid[0][5] = 2;
+        test_grid[0][6] = 3;
+        test_grid[0][7] = 4;
+
+        test_grid[1][0] = 1;
+        test_grid[1][1] = 1;
+        test_grid[1][2] = 1;
+        test_grid[1][3] = 1;
+        test_grid[1][4] = 1;
+        test_grid[1][5] = 1;
+        test_grid[1][6] = 1;
+        test_grid[1][7] = 1;
+
+
+        test_grid[6][0] = 1;
+        test_grid[6][1] = 1;
+        test_grid[6][2] = 1;
+        test_grid[6][3] = 1;
+        test_grid[6][4] = 1;
+        test_grid[6][5] = 1;
+        test_grid[6][6] = 1;
+        test_grid[6][7] = 1;
+
+        test_grid[7][0] = 4;
+        test_grid[7][1] = 3;
+        test_grid[7][2] = 2;
+        test_grid[7][3] = 5;
+        test_grid[7][4] = 6;
+        test_grid[7][5] = 2;
+        test_grid[7][6] = 3;
+        test_grid[7][7] = 4;
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        createNetworkHandler();
         mSurfaceView = (GLSurfaceView) findViewById(R.id.surfaceview);
 
         mSession = new Session(/*context=*/this);
@@ -125,8 +198,9 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
 
+        inputMove = (EditText)findViewById(R.id.input_make_turn);
+
         // setup new game button
-        Button newGameBtn;
         newGameBtn = (Button)findViewById(R.id.btn_new_game);
         newGameBtn.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
@@ -137,15 +211,63 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     }
 
     public void newGame(){
-        findViewById(R.id.input_server_ip).setVisibility(View.VISIBLE);
+        findViewById(R.id.input_make_turn).setVisibility(View.VISIBLE);
         findViewById(R.id.btn_new_game).setVisibility(View.INVISIBLE);
         Log.d("new game","started");
     }
 
-    public void setupNewGame(){
-        // starts network handler and establish connection to server
+    public void makeMove(){
+        String move = inputMove.getText().toString();
+        //networkHandler.makeMove(move);
     }
 
+    public void updateBoard(String[][] chessBoard){
+
+    }
+
+    public int[] getChessPiece(int x, int y){
+        int[] answer = new int[2];
+        if(chessBoard[x][y] == "."){
+            answer[0] = 0;
+            answer[1] = 0;
+            return answer;
+        }
+
+        switch(chessBoard[x][y].charAt(0)){
+            case 'W':
+                answer[0] = 0;
+                break;
+            case 'B':
+                answer[0] = 1;
+                break;
+
+        }
+        switch(chessBoard[x][y].charAt(1)){
+            case 'P':
+                answer[1] = 1; // PAWN is 1
+                break;
+            case 'B':
+                answer[1] = 2; // BISHOP is 2
+                break;
+            case 'N':
+                answer[1] = 3; // KNIGHT is 3
+                break;
+            case 'R':
+                answer[1] = 4; // ROOK is 4
+                break;
+            case 'Q':
+                answer[1] = 5; // QUEEN is 5
+                break;
+            case 'K':
+                answer[1] = 6; // KING is 6
+                break;
+        }
+        return answer;
+    }
+
+    /*
+    (int type, int color) = convert__(x, y)
+    */
     @Override
     protected void onResume() {
         super.onResume();
@@ -199,6 +321,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     private void onSingleTap(MotionEvent e) {
         // Queue tap if there is space. Tap is lost if queue is full.
+        mService.sendMessage();
         mQueuedSingleTaps.offer(e);
     }
 
@@ -212,13 +335,9 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
         // Prepare the other rendering objects.
         try {
-            mVirtualObject.createOnGlThread(/*context=*/this, "andy.obj", "andy.png");
+            mVirtualObject.createOnGlThread(/*context=*/this, "andy.png");
             mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            mVirtualObjectShadow.createOnGlThread(/*context=*/this,
-                "andy_shadow.obj", "andy_shadow.png");
-            mVirtualObjectShadow.setBlendMode(BlendMode.Shadow);
-            mVirtualObjectShadow.setMaterialProperties(1.0f, 0.0f, 0.0f, 1.0f);
         } catch (IOException e) {
             Log.e(TAG, "Failed to read obj file");
         }
@@ -323,11 +442,17 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 // its estimate of the world.
                 planeAttachment.getPose().toMatrix(mAnchorMatrix, 0);
 
-                // Update and draw the model and its shadow.
-                mVirtualObject.updateModelMatrix(mAnchorMatrix, scaleFactor);
-                mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, scaleFactor);
-                mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
-                mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
+                // Update and draw the model and its shadow
+                for(int x=0;x<8;x++) {
+                    for(int y=0;y<8;y++) {
+                        int[] chessPiece = getChessPiece(x,y);
+                        if(chessPiece[1]== 0)
+                            continue;
+
+                        mVirtualObject.updateModelMatrix(mAnchorMatrix, (x-3.5f) * 0.1f, 0, (y-3.5f) * 0.1f);
+                        mVirtualObject.draw(viewmtx, projmtx, lightIntensity, chessPiece[1]-1);// chess pieces mesh index start counting at 0, not 1
+                    }
+                }
             }
 
         } catch (Throwable t) {
@@ -358,4 +483,31 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             }
         });
     }
+
+    private void createNetworkHandler() {
+        if (networkHandler == null) {
+            networkHandler = new Intent(this, NetworkHandler.class);
+        }
+        bindService(networkHandler, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            NetworkHandler.LocalBinder binder = (NetworkHandler.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+            Log.d("test", "Service Bound. Thread: " + android.os.Process.myTid());
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            Log.d("test", "Service Stopped. Thread: " + android.os.Process.myTid());
+            mBound = false;
+        }
+    };
 }
