@@ -28,17 +28,18 @@ king_info = {'W': {'x': 4, 'y': 3, 'free_space': [], 'check': False, 'save_king'
 @socketio.on('join')
 def join(player):
     print('player joined ', player)
+    you = 'observer'
     if players['W'] == '' or players['W'] == player['user']:
         players['W'] = player['user']
-        emit('joined', {'board': chessBoard, 'you': 'W'})
+        you = 'W'
     elif players['B'] == '' or players['B'] == player['user']:
         players['B'] = player['user']
-        emit('joined', {'board': chessBoard, 'you': 'B'})
-    else:
-        emit('joined', {'board': chessBoard, 'you': 'observer'})
+        you = 'B'
     if players['W'] != '' and players['B'] != '':
+        emit('joined', {'started': "true", 'you': you})
         emit('board', {'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
-
+    else:
+        emit('joined', {'started': "false", 'you': you})
 
 
 @socketio.on('board')
@@ -58,9 +59,15 @@ def handle_move(move):
             king_info[current['player']]['check'] = False
             update_king_info(current['player'])
             update_king_info(opponent(current['player']))
-        emit('board', {'result': result, 'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
+            if 'promote' in result:
+                emit('board', {'result': result, 'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
+            else:
+                emit('board', {'result': result, 'player': current['player'], 'board': chessBoard, 'king_info': king_info}, broadcast=True)
+
+        else:
+            emit('moveFailed', {'result': result})
     else:
-        emit('board', 'it\'s not your move')
+        emit('moveFailed', {'result': 'it\'s not your move'})
 
 
 def legal_move(player, move):
@@ -169,9 +176,9 @@ def legal_move(player, move):
             if chessBoard[start[0]][start[1]] == player + 'P' and not_friendly_piece(end, player):
                 result = move_pawn(start, end, player)
                 if 'success' in result:
-                    update_board(start, end, player + 'N')
+                    update_board(start, end, player + 'P')
                     if check(player):
-                        update_board(end, start, player + 'N')
+                        update_board(end, start, player + 'P')
                         return 'your king would be in check after that move'
                     elif not waiting['promote']:
                         next_player()
@@ -453,30 +460,46 @@ def save_king(threats, player):
         for j in range(0, 8):
             if friendly_piece([i, j], player):
                 if chessBoard[i][j] == player + 'Q':
-                    if save_helper([i, j], threats[0], move_queen, player):
+                    if save_helper([i, j], threats[0], move_queen, player, 'Q'):
                         return True
                 elif chessBoard[i][j] == player + 'R':
-                    if save_helper([i, j], threats[0], move_rook, player):
+                    if save_helper([i, j], threats[0], move_rook, player, 'R'):
                         return True
                 elif chessBoard[i][j] == player + 'B':
-                    if save_helper([i, j], threats[0], move_bishop, player):
+                    if save_helper([i, j], threats[0], move_bishop, player, 'B'):
                         return True
                 elif chessBoard[i][j] == player + 'N':
-                    if save_helper([i, j], threats[0], move_knight, player):
+                    if save_helper([i, j], threats[0], move_knight, player, 'N'):
                         return True
                 elif chessBoard[i][j] == player + 'P':
-                    if save_helper([i, j], threats[0], threat_pawn, player):
+                    if save_helper([i, j], threats[0], threat_pawn, player, 'P'):
                         return True
     return False
 
 
-def save_helper(start, block_squares, move_fun, player):
+def save_helper(start, block_squares, move_fun, player, piece):
     print(block_squares)
     for x in range(0, len(block_squares)):
         print(block_squares[x])
         if 'success' in move_fun(start, block_squares[x], player):
-            return True
+            board_copy = chessBoard.copy()
+            update_board(start, block_squares[x], player + piece)
+            if not check(player):
+                restore_board(board_copy)
+                return True
+            restore_board(board_copy)
     return False
+
+
+def restore_board(board_copy):
+    chessBoard[0] = board_copy[0]
+    chessBoard[1] = board_copy[1]
+    chessBoard[2] = board_copy[2]
+    chessBoard[3] = board_copy[3]
+    chessBoard[4] = board_copy[4]
+    chessBoard[5] = board_copy[5]
+    chessBoard[6] = board_copy[6]
+    chessBoard[7] = board_copy[7]
 
 
 def blocked_by_friendly(surrounding_squares, player):
@@ -491,7 +514,7 @@ def blocked_by_friendly(surrounding_squares, player):
 def check(player):
     for i in range(0, 8):
         for j in range(0, 8):
-            if not_friendly_piece([i, j], player):
+            if friendly_piece([i, j], opponent(player)):
                 if check_helper([i, j], player):
                     return True
     return False
@@ -542,4 +565,4 @@ def squares_between(s, e):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='127.0.0.1', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)
