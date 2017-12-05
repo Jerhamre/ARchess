@@ -122,12 +122,12 @@ public class NetworkHandler extends Service {
         Log.d("test", "Socket done" + android.os.Process.myTid());
     }
 
-    public void makeMove() {
+    public void makeMove(String move) {
         Log.d("test", "Sending Message");
 
         JSONObject chessMove = new JSONObject();
         try {
-            chessMove.put("move", "e2-e4");
+            chessMove.put("move", move);
             chessMove.put("user", username);
         } catch (JSONException e) {
             e.printStackTrace();

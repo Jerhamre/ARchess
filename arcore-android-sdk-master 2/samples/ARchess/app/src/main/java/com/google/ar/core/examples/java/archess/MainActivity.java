@@ -350,7 +350,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     private void onSingleTap(MotionEvent e) {
         // Queue tap if there is space. Tap is lost if queue is full.
-        mService.makeMove();
+        //mService.makeMove("e2-e4");
         mQueuedSingleTaps.offer(e);
     }
 
