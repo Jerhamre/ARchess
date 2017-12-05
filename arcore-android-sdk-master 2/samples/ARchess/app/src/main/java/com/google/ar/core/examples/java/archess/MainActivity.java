@@ -40,6 +40,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -122,6 +123,27 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         mSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0); // Alpha used for plane blending.
         mSurfaceView.setRenderer(this);
         mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+
+
+        // setup new game button
+        Button newGameBtn;
+        newGameBtn = (Button)findViewById(R.id.btn_new_game);
+        newGameBtn.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v) {
+                newGame();
+            }
+         });
+
+    }
+
+    public void newGame(){
+        findViewById(R.id.input_server_ip).setVisibility(View.VISIBLE);
+        findViewById(R.id.btn_new_game).setVisibility(View.INVISIBLE);
+        Log.d("new game","started");
+    }
+
+    public void setupNewGame(){
+        // starts network handler and establish connection to server
     }
 
     @Override
