@@ -67,6 +67,7 @@ public class ObjectRenderer {
     // Shader location: model view projection matrix.
     private int mModelViewUniform;
     private int mModelViewProjectionUniform;
+    private int mColorUniform;
 
     // Shader location: object attributes.
     private int mPositionAttribute;
@@ -231,7 +232,7 @@ public class ObjectRenderer {
 
 
 
-
+        mColorUniform = GLES20.glGetUniformLocation(mProgram, "color");
 
         mModelViewUniform = GLES20.glGetUniformLocation(mProgram, "u_ModelView");
         mModelViewProjectionUniform =
@@ -303,7 +304,7 @@ public class ObjectRenderer {
      * @see #setMaterialProperties(float, float, float, float)
      * @see android.opengl.Matrix
      */
-    public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity, int piece) {
+    public void draw(float[] cameraView, float[] cameraPerspective, float lightIntensity, int piece, float red, float green, float blue) {
         if(piece < 0 || piece >= 6)
             return; // bad input
         StaticMesh current_mesh = meshChessPieces[piece];
@@ -350,6 +351,8 @@ public class ObjectRenderer {
                 mModelViewUniform, 1, false, mModelViewMatrix, 0);
         GLES20.glUniformMatrix4fv(
                 mModelViewProjectionUniform, 1, false, mModelViewProjectionMatrix, 0);
+
+        GLES20.glUniform3f(mColorUniform, red, green, blue);
 
         // Enable vertex arrays
         GLES20.glEnableVertexAttribArray(mPositionAttribute);

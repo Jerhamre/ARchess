@@ -16,6 +16,7 @@
 precision mediump float;
 
 uniform sampler2D u_Texture;
+uniform vec3 color;
 
 uniform vec4 u_LightingParameters;
 uniform vec4 u_MaterialParameters;
@@ -45,6 +46,7 @@ void main() {
     // Apply inverse SRGB gamma to the texture before making lighting calculations.
     // Flip the y-texture coordinate to address the texture from top-left.
     vec4 objectColor = texture2D(u_Texture, vec2(v_TexCoord.x, 1.0 - v_TexCoord.y));
+    objectColor.rgb = objectColor.rgb * color;
     objectColor.rgb = pow(objectColor.rgb, vec3(kInverseGamma));
 
     // Ambient light is unaffected by the light intensity.
