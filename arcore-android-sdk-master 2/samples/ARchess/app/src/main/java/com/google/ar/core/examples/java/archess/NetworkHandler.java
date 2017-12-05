@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.github.nkzawa.emitter.Emitter;
@@ -22,10 +23,11 @@ import java.net.URISyntaxException;
 
 public class NetworkHandler extends Service {
 
-    String SERVER_IP = "155.4.193.106";
+    String SERVER_IP = "130.240.155.95";
     int SERVER_PORT = 5000;
     Socket socket = null;
     private final IBinder mBinder = new LocalBinder();
+    public String username = "Bosse";
 
 
     public class LocalBinder extends Binder {
@@ -49,18 +51,22 @@ public class NetworkHandler extends Service {
 
                 @Override
                 public void call(Object... args) {
-                    Log.d("test", "EVENT_CONNECT. Thread: " + android.os.Process.myTid());
-
+                    // Emit username to server
+                    JSONObject user = new JSONObject();
+                    try {
+                        user.put("user", username);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    socket.emit("join", user);
                 }
 
             }).on("board", new Emitter.Listener() {
 
                 @Override
                 public void call(Object... args) {
-                    Log.d("test", "Board:");
-
                     JSONObject data = (JSONObject) args[0];
-                    Log.d("test", data.toString() + "\n" + android.os.Process.myTid());
+                    sendMessage("board", data.toString());
                 }
 
             }).on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
@@ -68,6 +74,43 @@ public class NetworkHandler extends Service {
                 @Override
                 public void call(Object... args) {
                     Log.d("test", "EVENT_DISCONNECT. Thread: " + android.os.Process.myTid());
+                }
+
+            }).on("joined", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    JSONObject data = (JSONObject) args[0];
+                    try {
+                        if (data.getString("you").equals("observer")) {
+                            sendMessage("observer", "");
+                        } else {
+                            if (data.getString("started").equals("false")) {
+                                sendMessage("waiting", "");
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            }).on("moveFailed", new Emitter.Listener() {
+
+                @Override
+                public void call(Object... args) {
+                    JSONObject data = (JSONObject) args[0];
+                    try {
+                        String message = data.getString("result");
+                        sendMessage("moveFailed", message);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            }).on("promote", new Emitter.Listener() {
+
+                @Override
+                public void call(Object... args) {
+
                 }
 
             });
@@ -79,9 +122,37 @@ public class NetworkHandler extends Service {
         Log.d("test", "Socket done" + android.os.Process.myTid());
     }
 
-    public void sendMessage() {
+    public void makeMove() {
         Log.d("test", "Sending Message");
-        socket.emit("board");
+
+        JSONObject chessMove = new JSONObject();
+        try {
+            chessMove.put("move", "e2-e4");
+            chessMove.put("user", username);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        socket.emit("move", chessMove);
+        //socket.emit("board");
+    }
+
+    public void sendMessage(String event) {
+
+    }
+    public void sendMessage (String event, String data) {
+        Intent intent = new Intent("Event");
+        intent.putExtra("event", event);
+        if (event == "board") {
+            intent.putExtra("board", data);
+        }
+
+
+        if (event == "moveFailed") {
+            intent.putExtra("message", data);
+        }
+
+
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     public void doDisconnect() {

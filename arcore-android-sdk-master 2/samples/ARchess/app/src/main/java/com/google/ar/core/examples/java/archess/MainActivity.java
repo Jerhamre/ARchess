@@ -30,15 +30,18 @@ import com.google.ar.core.examples.java.archess.rendering.PlaneAttachment;
 import com.google.ar.core.examples.java.archess.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.archess.rendering.PointCloudRenderer;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -48,6 +51,9 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -99,6 +105,35 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private ArrayBlockingQueue<MotionEvent> mQueuedSingleTaps = new ArrayBlockingQueue<>(16);
     private ArrayList<PlaneAttachment> mTouches = new ArrayList<>();
 
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String board, message;
+            String event = intent.getStringExtra("event");
+            switch (event) {
+                case "observer":
+                    // TODO toast?
+                    Log.d("test", "Joined game as observer.");
+                    break;
+                case "waiting":
+                    Log.d("test", "Joined game. Waiting for other player for game to start.");
+                    break;
+                case "board":
+                    board = intent.getStringExtra("board");
+                    try {
+                        JSONObject boardJSON = new JSONObject(board);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d("test", board);
+                    break;
+                case "moveFailed":
+                    message = intent.getStringExtra("message");
+                    Log.d("test", message);
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -149,6 +184,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter("Event"));
         createNetworkHandler();
         mSurfaceView = (GLSurfaceView) findViewById(R.id.surfaceview);
 
@@ -313,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     private void onSingleTap(MotionEvent e) {
         // Queue tap if there is space. Tap is lost if queue is full.
-        mService.sendMessage();
+        mService.makeMove();
         mQueuedSingleTaps.offer(e);
     }
 
