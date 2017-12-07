@@ -54,6 +54,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -124,10 +125,23 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     board = intent.getStringExtra("board");
                     try {
                         JSONObject boardJSON = new JSONObject(board);
+                        JSONArray column;
+                        JSONArray jsonArrayBoard = boardJSON.getJSONArray("board");
+                        for (int i = 0; i<8; i++) {
+                            column = jsonArrayBoard.getJSONArray(i);
+                            for (int j = 0; j<8; j++) {
+                                chessBoard[i][j] = column.getString(j);
+                            }
+                            //Log.d("test", "New Board: " + tempBoard);
+                        }
+                        //chessBoard[0][0] = "";
+                        //updateBoard(tempBoard);
+                        //Log.d("test", chessBoard[0].toString());
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                     Log.d("test", board);
+
                     break;
                 case "moveFailed":
                     message = intent.getStringExtra("message");
@@ -266,6 +280,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     // updates the gameboard, 
     public void updateBoard(String[][] chessBoard){
+        Log.d("test", chessBoard.toString());
         this.chessBoard = chessBoard;
     }
 
@@ -274,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     */
     public int[] getChessPiece(int x, int y){
         int[] answer = new int[2];
-        if(chessBoard[x][y] == "."){
+        if(chessBoard[x][y].equals(".")){
             answer[0] = 0;
             answer[1] = 0;
         } else{
@@ -363,7 +378,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     private void onSingleTap(MotionEvent e) {
         // Queue tap if there is space. Tap is lost if queue is full.
-        //mService.makeMove("e2-e4");
+        mService.makeMove("board");
         mQueuedSingleTaps.offer(e);
     }
 
