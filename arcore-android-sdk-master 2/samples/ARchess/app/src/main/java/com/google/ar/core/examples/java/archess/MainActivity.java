@@ -257,9 +257,14 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         inputMove.setOnEditorActionListener(new TextView.OnEditorActionListener(){
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event){
-                if(actionId==inputMove.getImeActionId()){
+                Log.d("test", String.valueOf(actionId));
+
+                if(actionId==KeyEvent.KEYCODE_ENDCALL){
+                    Log.d("test", "Event Move");
+                    makeMove();
                     return true;
                 }
+                Log.d("test", "Edit return False");
                 return false;
             }
         });
@@ -275,6 +280,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     public void makeMove(){
         String move = inputMove.getText().toString();
+        Log.d("test", "Move: " + move);
         mService.makeMove(move);
     }
 
@@ -378,7 +384,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     private void onSingleTap(MotionEvent e) {
         // Queue tap if there is space. Tap is lost if queue is full.
-        mService.makeMove("board");
         mQueuedSingleTaps.offer(e);
     }
 
