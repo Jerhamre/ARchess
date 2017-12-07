@@ -145,7 +145,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     break;
                 case "moveFailed":
                     message = intent.getStringExtra("message");
-                    Log.d("test", message);
+                    Toast toast = Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT);
+                    toast.show();
             }
         }
     };
