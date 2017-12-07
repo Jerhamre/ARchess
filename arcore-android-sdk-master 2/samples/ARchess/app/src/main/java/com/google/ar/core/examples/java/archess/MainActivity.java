@@ -45,11 +45,13 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONException;
@@ -76,7 +78,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     Button newGameBtn;
     EditText inputMove;
-    Boolean gameStarted;
 
 
     // current game state
@@ -238,6 +239,18 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             }
          });
 
+
+        inputMove.setOnEditorActionListener(new TextView.OnEditorActionListener(){
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event){
+                if(actionId==inputMove.getImeActionId()){
+                    return true;
+                }
+                return false;
+            }
+        });
+
+
     }
 
     public void newGame(){
@@ -248,7 +261,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     public void makeMove(){
         String move = inputMove.getText().toString();
-        //networkHandler.makeMove(move);
+        mService.makeMove(move);
     }
 
     // updates the gameboard, 
@@ -478,7 +491,9 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                         if(chessPiece[1]== 0)
                             continue;
 
-                        mVirtualObject.updateModelMatrix(mAnchorMatrix, (x-3.5f) * 0.1f, 0, (y-3.5f) * 0.1f);
+                        float rotation = chessPiece[0] * 180;
+
+                        mVirtualObject.updateModelMatrix(mAnchorMatrix, (x-3.5f) * 0.1f, 0, (y-3.5f) * 0.1f, rotation);
                         float red, green, blue;
                         if(chessPiece[0] == 0){
                             red = 1;

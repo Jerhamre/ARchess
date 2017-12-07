@@ -267,11 +267,16 @@ public class ObjectRenderer {
      * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
      * @see android.opengl.Matrix
      */
-    public void updateModelMatrix(float[] modelMatrix, float dx, float dy, float dz) {
+    public void updateModelMatrix(float[] modelMatrix, float dx, float dy, float dz, float rotation) {
+
 
         float[] translationMatrix = new float[16];
         Matrix.setIdentityM(translationMatrix, 0);
+
+
         Matrix.translateM(translationMatrix, 0, dx, dy, dz);
+        Matrix.rotateM(translationMatrix, 0, rotation, 0, 1, 0);
+
 
         Matrix.multiplyMM(mModelMatrix, 0, modelMatrix, 0, translationMatrix, 0);
     }
