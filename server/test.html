@@ -9,7 +9,7 @@
 $(document).ready(function() {
 	var socket = io.connect('http://127.0.0.1:5000');
 	socket.on('connect', function() {
-		socket.emit('join', {'user': '1'});
+		socket.emit('joinRoom', {'user': '1', 'room': 'thisroom'});
 	});
 	socket.on('message', function(msg) {
 		$("#messages").append('<li>'+msg+'</li>');
@@ -18,11 +18,14 @@ $(document).ready(function() {
 	socket.on('board', function(msg) {
 		console.log('board', msg);
 	});
+    socket.on('moveFailed', function(msg) {
+		console.log('move failed', msg);
+	});
     socket.on('joined', function(msg) {
 		console.log('joined', msg);
 	});
 	$('#sendbutton').on('click', function() {
-		socket.emit('move', {'move': $('#myMessage').val(), 'user': '1'});
+		socket.emit('move', {'move': $('#myMessage').val(), 'user': '1', 'room': 'thisroom'});
 	});
 	$('#boardbutton').on('click', function() {
 		socket.emit('board');
