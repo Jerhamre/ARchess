@@ -37,6 +37,8 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.GLU;
+import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.design.widget.Snackbar;
@@ -79,6 +81,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     Button newGameBtn;
     EditText inputMove;
 
+    boolean hasPlacedBoard = false; // flag to keep track of state
+    int[] choosenPiece; // int[2] (x, y) on chessboard
 
     // current game state
     String[][] chessBoard = new String[8][8];
@@ -96,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private GestureDetector mGestureDetector;
     private Snackbar mLoadingMessageSnackbar = null;
 
-    private ChessRenderer mVirtualObject = new ChessRenderer();
+    private ChessRenderer mChessRenderer = new ChessRenderer();
     private PlaneRenderer mPlaneRenderer = new PlaneRenderer();
     private PointCloudRenderer mPointCloud = new PointCloudRenderer();
 
@@ -150,6 +154,25 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         }
     };
 
+    // Helper function
+    private static float distance_to_ray(float[] point, float[] lineStart, float[] lineEnd){
+        float[] PointThing = new float[3];
+        float[] TotalThing = new float[3];
+        PointThing[0] = lineStart[0] - point[0];
+        PointThing[1] = lineStart[1] - point[1];
+        PointThing[2] = lineStart[2] - point[2];
+
+        TotalThing[0] = (PointThing[1]*lineEnd[2] - PointThing[2]*lineEnd[1]);
+        TotalThing[1] = -(PointThing[0]*lineEnd[2] - PointThing[2]*lineEnd[0]);
+        TotalThing[2] = (PointThing[0]*lineEnd[1] - PointThing[1]*lineEnd[0]);
+
+        float distance = (float) (Math.sqrt(TotalThing[0]*TotalThing[0] + TotalThing[1]*TotalThing[1] + TotalThing[2]*TotalThing[2]) /
+                Math.sqrt(lineEnd[0] * lineEnd[0] + lineEnd[1] * lineEnd[1] + lineEnd[2] * lineEnd[2] ));
+
+
+        return distance;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -160,6 +183,10 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 chessBoard[x][y] = ".";
             }
         }
+
+        hasPlacedBoard = false;
+        choosenPiece = new int[]{-1, -1};
+
         // START BOARD, HARDCODED
         chessBoard[1][0] = "WP";
         chessBoard[1][1] = "WP";
@@ -397,8 +424,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
         // Prepare the other rendering objects.
         try {
-            mVirtualObject.createOnGlThread(/*context=*/this, "default_texture.png");
-            mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
+            mChessRenderer.createOnGlThread(/*context=*/this, "default_texture.png");
+            mChessRenderer.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
         } catch (IOException e) {
             Log.e(TAG, "Failed to read obj file");
@@ -430,31 +457,104 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             // camera framerate.
             Frame frame = mSession.update();
 
-            // Handle taps. Handling only one tap per frame, as taps are usually low frequency
-            // compared to frame rate.
-            MotionEvent tap = mQueuedSingleTaps.poll();
-            if (tap != null && frame.getTrackingState() == TrackingState.TRACKING) {
-                for (HitResult hit : frame.hitTest(tap)) {
-                    // Check if any plane was hit, and if it was hit inside the plane polygon.
-                    if (hit instanceof PlaneHitResult && ((PlaneHitResult) hit).isHitInPolygon()) {
-                        // Cap the number of objects created. This avoids overloading both the
-                        // rendering system and ARCore.
-                        if (mTouches.size() >= 16) {
-                            mSession.removeAnchors(Arrays.asList(mTouches.get(0).getAnchor()));
-                            mTouches.remove(0);
-                        }
-                        // Adding an Anchor tells ARCore that it should track this position in
-                        // space. This anchor will be used in PlaneAttachment to place the 3d model
-                        // in the correct position relative both to the world and to the plane.
-                        mTouches.add(new PlaneAttachment(
-                            ((PlaneHitResult) hit).getPlane(),
-                            mSession.addAnchor(hit.getHitPose())));
+            if(hasPlacedBoard == false)
+            {
+                // Handle taps. Handling only one tap per frame, as taps are usually low frequency
+                // compared to frame rate.
+                MotionEvent tap = mQueuedSingleTaps.poll();
+                if (tap != null && frame.getTrackingState() == TrackingState.TRACKING) {
+                    for (HitResult hit : frame.hitTest(tap)) {
+                        // Check if any plane was hit, and if it was hit inside the plane polygon.
+                        if (hit instanceof PlaneHitResult && ((PlaneHitResult) hit).isHitInPolygon()) {
+                            // Cap the number of objects created. This avoids overloading both the
+                            // rendering system and ARCore.
+                            if (mTouches.size() >= 16) {
+                                mSession.removeAnchors(Arrays.asList(mTouches.get(0).getAnchor()));
+                                mTouches.remove(0);
+                            }
+                            // Adding an Anchor tells ARCore that it should track this position in
+                            // space. This anchor will be used in PlaneAttachment to place the 3d model
+                            // in the correct position relative both to the world and to the plane.
+                            mTouches.add(new PlaneAttachment(
+                                    ((PlaneHitResult) hit).getPlane(),
+                                    mSession.addAnchor(hit.getHitPose())));
 
-                        // Hits are sorted by depth. Consider only closest hit on a plane.
-                        break;
+                            hasPlacedBoard = true;
+
+                            // Hits are sorted by depth. Consider only closest hit on a plane.
+                            break;
+                        }
                     }
                 }
+            }else{
+                MotionEvent tap = mQueuedSingleTaps.poll();
+                if(tap != null )
+                {
+                    // Get projection matrix.
+                    float[] projmtx = new float[16];
+                    mSession.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
+
+                    // Get camera matrix and draw.
+                    float[] viewmtx = new float[16];
+                    frame.getViewMatrix(viewmtx, 0);
+
+                    int[] viewport = new int[4];
+                    float[] modelview = new float[16];
+                    float[] projection = new float[16];
+                    float winx, winy, winz;
+                    float[] newcoords = new float[4]; // x, y, z, w
+
+                    GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, viewport,0);
+
+                    Matrix.multiplyMM(modelview,0,
+                            viewmtx,0,
+                            mAnchorMatrix,0);
+
+                    projection = projmtx;
+                    int setx = (int)tap.getX();
+                    int sety = (int)tap.getY();
+
+                    winx = (float)setx;
+                    winy = (float)viewport[3] - sety;
+                    winz = 0;
+
+                    GLU.gluUnProject(winx, winy, winz, modelview, 0, projection, 0,   viewport, 0, newcoords, 0);
+
+                    float [] start = new float[3];
+                    start[0] = newcoords[0] / newcoords[3];
+                    start[1] = newcoords[1] / newcoords[3];
+                    start[2] = newcoords[2] / newcoords[3];
+
+                    winz = 1;
+                    GLU.gluUnProject(winx, winy, winz, modelview, 0, projection, 0,   viewport, 0, newcoords, 0);
+
+                    float [] end = new float[3];
+                    end[0] = newcoords[0] / newcoords[3];
+                    end[1] = newcoords[1] / newcoords[3];
+                    end[2] = newcoords[2] / newcoords[3];
+
+                    int[] shortest = new int[2]; // chessboard coordinates
+
+                    float distance = Float.MAX_VALUE;
+
+                    for (int x = -1; x < 9; x++) {
+                        for (int y = -1; y < 9; y++) {
+
+                            float[] temp_point = mChessRenderer.get_piece_3d_offset(x,y);
+                            float temp_distance = distance_to_ray(temp_point, start, end);
+                            if(temp_distance <= distance){
+                                distance = temp_distance;
+                                shortest[0] = x;
+                                shortest[1] = y;
+                            }
+
+                        }
+                    }
+
+                    choosenPiece = shortest;
+                }
             }
+
 
             // Draw background.
             mBackgroundRenderer.draw(frame);
@@ -477,7 +577,11 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
             // Visualize tracked points.
             mPointCloud.update(frame.getPointCloud());
-            mPointCloud.draw(frame.getPointCloudPose(), viewmtx, projmtx);
+            if(hasPlacedBoard == false)
+            {
+                mPointCloud.draw(frame.getPointCloudPose(), viewmtx, projmtx);
+            }
+
 
             // Check if we detected at least one plane. If so, hide the loading message.
             if (mLoadingMessageSnackbar != null) {
@@ -491,7 +595,10 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             }
 
             // Visualize planes.
-            mPlaneRenderer.drawPlanes(mSession.getAllPlanes(), frame.getPose(), projmtx);
+            if(hasPlacedBoard == false)
+            {
+                mPlaneRenderer.drawPlanes(mSession.getAllPlanes(), frame.getPose(), projmtx);
+            }
 
             // Visualize anchors created by touch.
             float scaleFactor = 1.0f;
@@ -512,15 +619,17 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                             continue;
 
                         float rotation = chessPiece[0] * 180;
-                        float[] piece_world_offset = mVirtualObject.get_piece_3d_offset(x, y);
+                        float[] piece_world_offset = mChessRenderer.get_piece_3d_offset(x, y);
 
-                        boolean is_white = chessPiece[0] == 0;
-                        mVirtualObject.updateModelMatrix(mAnchorMatrix, piece_world_offset, rotation);
-                        mVirtualObject.draw_piece(viewmtx, projmtx, lightIntensity, chessPiece[1]-1, is_white);// chess pieces mesh index start counting at 0, not 1
+                        int color_id = (chessPiece[0] == 0) ? 0 : 1;
+                        if(choosenPiece[0] == x && choosenPiece[1] == y)
+                            color_id = 2;
+                        mChessRenderer.updateModelMatrix(mAnchorMatrix, piece_world_offset, rotation);
+                        mChessRenderer.draw_piece(viewmtx, projmtx, lightIntensity, chessPiece[1]-1, color_id);// chess pieces mesh index start counting at 0, not 1
                     }
                 }
-                mVirtualObject.updateModelMatrix(mAnchorMatrix,new float[]{0,0,0},0);
-                mVirtualObject.draw_chessboard(viewmtx, projmtx, lightIntensity);
+                mChessRenderer.updateModelMatrix(mAnchorMatrix,new float[]{0,0,0},0);
+                mChessRenderer.draw_chessboard(viewmtx, projmtx, lightIntensity);
             }
 
         } catch (Throwable t) {

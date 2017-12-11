@@ -58,8 +58,12 @@ public class ChessRenderer {
     private static final float[] LIGHT_DIRECTION = new float[] { 0.0f, 1.0f, 0.0f, 0.0f };
     private float[] mViewLightDirection = new float[4];
 
-    StaticMesh meshChessboard[];    // 3 pieces for the whole chessboard
-    StaticMesh meshChessPieces[];
+    private StaticMesh meshChessboard[];    // 3 pieces for the whole chessboard
+    private StaticMesh meshChessPieces[];
+    private float[] color_white;
+    private float[] color_black;
+    private float[] color_marked;
+    private float[] color_error;
 
     private int mProgram;
     private int[] mTextures = new int[1];
@@ -225,6 +229,12 @@ public class ChessRenderer {
         meshChessPieces[4] = load_model(context, "queen.obj");
         meshChessPieces[5] = load_model(context, "king.obj");
 
+        color_white = new float[] {0.9f, 0.7f, 0.4f};
+        color_black = new float[] {0.9f, 0.4f, 0.4f};
+        color_marked = new float[] {1, 1, 0};
+        color_error = new float[] {1, 0, 1};
+
+
         mColorUniform = GLES20.glGetUniformLocation(mProgram, "color");
 
         mModelViewUniform = GLES20.glGetUniformLocation(mProgram, "u_ModelView");
@@ -382,25 +392,36 @@ public class ChessRenderer {
     public void draw_chessboard(float[] cameraView, float[] cameraPerspective, float lightIntensity)
     {
         float[] color;
-        color = new float[] {0.9f, 0.7f, 0.4f};
+        color = color_white;
         draw(meshChessboard[0], cameraView, cameraPerspective, lightIntensity, color[0], color[1], color[2]);
 
-        color = new float[] {0.9f, 0.4f, 0.4f};
+        color = color_black;
         draw(meshChessboard[1], cameraView, cameraPerspective, lightIntensity, color[0], color[1], color[2]);
 
-        color = new float[] {0.9f, 0.7f, 0.4f};
+        color = color_white;
         draw(meshChessboard[2], cameraView, cameraPerspective, lightIntensity, color[0], color[1], color[2]);
     }
 
-    public void draw_piece(float[] cameraView, float[] cameraPerspective, float lightIntensity, int chess_piece_type, boolean is_white) {
+    public void draw_piece(float[] cameraView, float[] cameraPerspective, float lightIntensity, int chess_piece_type, int color_id) {
 
         if(chess_piece_type < 0 || chess_piece_type >= 6)
             return; // bad input
         float[] color;
-        if(is_white)
-            color = new float[] {0.9f, 0.7f, 0.4f};
-        else
-            color = new float[] {0.9f, 0.4f, 0.4f};
+        switch(color_id)
+        {
+            case 0:
+                color = color_white;
+                break;
+            case 1:
+                color = color_black;
+                break;
+            case 2:
+                color = color_marked;
+                break;
+            default:
+                color = color_error;
+                break;
+        }
 
         draw(meshChessPieces[chess_piece_type],cameraView, cameraPerspective, lightIntensity, color[0], color[1], color[2]);
 
