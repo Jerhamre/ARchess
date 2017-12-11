@@ -24,8 +24,7 @@ import com.google.ar.core.Plane;
 import com.google.ar.core.PlaneHitResult;
 import com.google.ar.core.Session;
 import com.google.ar.core.examples.java.archess.rendering.BackgroundRenderer;
-import com.google.ar.core.examples.java.archess.rendering.ObjectRenderer;
-import com.google.ar.core.examples.java.archess.rendering.ObjectRenderer.BlendMode;
+import com.google.ar.core.examples.java.archess.rendering.ChessRenderer;
 import com.google.ar.core.examples.java.archess.rendering.PlaneAttachment;
 import com.google.ar.core.examples.java.archess.rendering.PlaneRenderer;
 import com.google.ar.core.examples.java.archess.rendering.PointCloudRenderer;
@@ -97,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private GestureDetector mGestureDetector;
     private Snackbar mLoadingMessageSnackbar = null;
 
-    private ObjectRenderer mVirtualObject = new ObjectRenderer();
+    private ChessRenderer mVirtualObject = new ChessRenderer();
     private PlaneRenderer mPlaneRenderer = new PlaneRenderer();
     private PointCloudRenderer mPointCloud = new PointCloudRenderer();
 
@@ -398,7 +397,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
         // Prepare the other rendering objects.
         try {
-            mVirtualObject.createOnGlThread(/*context=*/this, "andy.png");
+            mVirtualObject.createOnGlThread(/*context=*/this, "default_texture.png");
             mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
         } catch (IOException e) {
@@ -513,21 +512,15 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                             continue;
 
                         float rotation = chessPiece[0] * 180;
+                        float[] piece_world_offset = mVirtualObject.get_piece_3d_offset(x, y);
 
-                        mVirtualObject.updateModelMatrix(mAnchorMatrix, (x-3.5f) * 0.1f, 0, (y-3.5f) * 0.1f, rotation);
-                        float red, green, blue;
-                        if(chessPiece[0] == 0){
-                            red = 1;
-                            green = 0;
-                            blue = 0;
-                        }else{
-                            red = 0;
-                            green = 0;
-                            blue = 1;
-                        }
-                        mVirtualObject.draw(viewmtx, projmtx, lightIntensity, chessPiece[1]-1, red, green, blue);// chess pieces mesh index start counting at 0, not 1
+                        boolean is_white = chessPiece[0] == 0;
+                        mVirtualObject.updateModelMatrix(mAnchorMatrix, piece_world_offset, rotation);
+                        mVirtualObject.draw_piece(viewmtx, projmtx, lightIntensity, chessPiece[1]-1, is_white);// chess pieces mesh index start counting at 0, not 1
                     }
                 }
+                mVirtualObject.updateModelMatrix(mAnchorMatrix,new float[]{0,0,0},0);
+                mVirtualObject.draw_chessboard(viewmtx, projmtx, lightIntensity);
             }
 
         } catch (Throwable t) {
