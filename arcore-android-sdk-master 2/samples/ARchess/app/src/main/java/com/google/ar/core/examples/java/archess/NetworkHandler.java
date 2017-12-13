@@ -23,7 +23,7 @@ import java.net.URISyntaxException;
 
 public class NetworkHandler extends Service {
 
-    String SERVER_IP = "155.4.193.106";
+    String SERVER_IP = "130.240.154.40";
     int SERVER_PORT = 5000;
     Socket socket = null;
     private final IBinder mBinder = new LocalBinder();
@@ -55,10 +55,11 @@ public class NetworkHandler extends Service {
                     JSONObject user = new JSONObject();
                     try {
                         user.put("user", username);
+                        user.put("room", "thisroom");
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    socket.emit("join", user);
+                    socket.emit("joinRoom", user);
                 }
 
             }).on("board", new Emitter.Listener() {
@@ -127,11 +128,12 @@ public class NetworkHandler extends Service {
         try {
             chessMove.put("move", move);
             chessMove.put("user", username);
+            chessMove.put("room", "thisroom");
         } catch (JSONException e) {
             e.printStackTrace();
         }
         socket.emit("move", chessMove);
-        Log.d("test", "Move Made");
+        Log.d("test", "Move Made" + move);
     }
 
     public void sendMessage(String event) {

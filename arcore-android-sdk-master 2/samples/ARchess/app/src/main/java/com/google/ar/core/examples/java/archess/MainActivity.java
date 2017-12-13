@@ -79,7 +79,11 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     boolean mBound = false;
 
     Button newGameBtn;
-    EditText inputMove;
+    Button joinRoomBtn;
+    EditText inputUsername;
+    EditText inputRoom;
+    String inputMove2 = "";
+    String[] y_pos  = {"a","b","c","d","e","f","g","h"};
 
     boolean hasPlacedBoard = false; // flag to keep track of state
     int[] choosenPiece; // int[2] (x, y) on chessboard
@@ -88,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     String[][] chessBoard = new String[8][8];
     private int[][] test_grid;
     private boolean turn;
+    private boolean firstMove = true;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -270,9 +275,10 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
 
-        inputMove = (EditText)findViewById(R.id.input_make_turn);
+        inputUsername = (EditText)findViewById(R.id.input_username);
+        inputRoom = (EditText)findViewById(R.id.input_room);
 
-        // setup new game button
+        // Used to set room and username
         newGameBtn = (Button)findViewById(R.id.btn_new_game);
         newGameBtn.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
@@ -280,7 +286,16 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             }
          });
 
-
+        joinRoomBtn = (Button)findViewById(R.id.submit);
+        joinRoomBtn.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v) {
+                // TODO: Send room and username, networkhandler
+                // För att få text från inputfields
+                //inputUsername.getText().toString();
+                //inputRoom.getText().toString();
+            }
+        });
+        /* Legacy code
         inputMove.setOnEditorActionListener(new TextView.OnEditorActionListener(){
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event){
@@ -295,18 +310,48 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 return false;
             }
         });
-
+        */
 
     }
 
+    public void setMove(int xPos, int yPos){
+        int y = xPos;
+        int x = yPos;
+        Log.d("test", String.valueOf(firstMove));
+        Log.d("test", "inputMove" + inputMove2);
+        if (firstMove) {
+            String selectedPiece = chessBoard[y][x];
+            if(selectedPiece != "."){
+                if (chessBoard[y][x].charAt(1) != 'P') {
+                    inputMove2 += String.valueOf(chessBoard[y][x].charAt(1));
+                }
+            }
+
+            inputMove2 += y_pos[y];
+            inputMove2 += Integer.toString(x+1);
+            Log.d("inputMove2", "move" + inputMove2);
+            firstMove = false;
+        } else {
+            inputMove2 += "-";
+            inputMove2 += y_pos[y];
+            inputMove2 += Integer.toString(x+1);
+            Log.d("inputMove2", "move" + inputMove2);
+            makeMove();
+            inputMove2 = "";
+            firstMove = true;
+        }
+    }
+
     public void newGame(){
-        findViewById(R.id.input_make_turn).setVisibility(View.VISIBLE);
+        findViewById(R.id.input_username).setVisibility(View.VISIBLE);
+        findViewById(R.id.input_room).setVisibility(View.VISIBLE);
+        findViewById(R.id.submit).setVisibility(View.VISIBLE);
         findViewById(R.id.btn_new_game).setVisibility(View.INVISIBLE);
         Log.d("new game","started");
     }
 
     public void makeMove(){
-        String move = inputMove.getText().toString();
+        String move = inputMove2;
         Log.d("test", "Move: " + move);
         mService.makeMove(move);
     }
@@ -412,6 +457,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private void onSingleTap(MotionEvent e) {
         // Queue tap if there is space. Tap is lost if queue is full.
         mQueuedSingleTaps.offer(e);
+        Log.d("onTap", choosenPiece.toString());
     }
 
     @Override
@@ -552,6 +598,9 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     }
 
                     choosenPiece = shortest;
+                    Log.d("test",chessBoard[choosenPiece[0]][choosenPiece[1]]);
+                    Log.d("test", "running setMove");
+                    setMove(choosenPiece[0],choosenPiece[1]);
                 }
             }
 
