@@ -41,9 +41,15 @@ def join(player):
         rooms[room]['players']['B'] = player['user']
         you = 'B'
     if rooms[room]['players']['W'] != '' and rooms[room]['players']['B'] != '':
+        check = False
+        checkmate = False
+        if (rooms[room]['king_info']['W']['check'] or rooms[room]['king_info']['B']['check']):
+            check = True
+        if (rooms[room]['king_info']['W']['checkmate'] or rooms[room]['king_info']['B']['checkmate']):
+            checkmate = True
         emit('joined', {'started': "true", 'you': you})
         emit('board', {'player': rooms[room]['current']['player'], 'board': rooms[room]['chessBoard'],
-                       'king_info': rooms[room]['king_info']}, room=room)
+                       'check': check, 'checkmate': checkmate}, room=room)
     else:
         emit('joined', {'started': "false", 'you': you})
 
@@ -87,8 +93,14 @@ def handle_move(move):
                 emit('board', {'result': result, 'player': rooms[room]['current']['player'], 'board': rooms[room]['chessBoard'],
                                'king_info': rooms[room]['king_info']}, room=room)
             else:
+                check = False
+                checkmate = False
+                if (rooms[room]['king_info']['W']['check'] or rooms[room]['king_info']['B']['check']):
+                    check = True
+                if (rooms[room]['king_info']['W']['checkmate'] or rooms[room]['king_info']['B']['checkmate']):
+                    checkmate = True
                 emit('board', {'result': result, 'player': rooms[room]['current']['player'], 'board': rooms[room]['chessBoard'],
-                               'king_info': rooms[room]['king_info']}, room=room)
+                               'check': check, 'checkmate':checkmate}, room=room)
 
         else:
             emit('moveFailed', {'result': result})
@@ -324,25 +336,25 @@ def move_pawn(start, end, player, room):
     if on_board(end):
         if x_diff == 0:
             if y_diff == player_dir(player) and no_pieces_between(start, end, True, player, room):
-                update_board(start, end, player + 'P', room)
+                ##update_board(start, end, player + 'P', room)
                 if end[1] == 0 or end[1] == 7:
                     rooms[room]['waiting']['promote'] = True
                     return 'success, promote pawn'
                 return 'success'
             elif y_diff == 2 * player_dir(player) and first_move_pawn(start, player) and no_pieces_between(start, end, True, player, room):
-                update_board(start, end, player + 'P', room)
+                ##update_board(start, end, player + 'P', room)
                 rooms[room]['double_step_pawn']['pos'] = end
                 return 'success'
         elif abs(x_diff) == 1 and y_diff == player_dir(player):
             if opp_piece(end, player, room):
-                update_board(start, end, player + 'P', room)
+                ##update_board(start, end, player + 'P', room)
                 if end[1] == 0 or end[1] == 7:
                     rooms[room]['waiting']['promote'] = True
                     return 'success, promote pawn'
                 return 'success'
             elif passant(end, player, room):
                 rooms[room]['chessBoard'][end[0]][end[1] + player_dir(player)] = '.'
-                update_board(start, end, player + 'P', room)
+                ##update_board(start, end, player + 'P', room)
                 return 'success'
     return 'illegal pawn move'
 
