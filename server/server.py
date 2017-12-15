@@ -542,7 +542,7 @@ def save_helper(start, block_squares, move_fun, player, piece, room):
     print(block_squares)
     for x in range(0, len(block_squares)):
         print(block_squares[x])
-        if 'success' in move_fun(start, block_squares[x], player):
+        if 'success' in move_fun(start, block_squares[x], player, room):
             board_copy = rooms[room]['chessBoard'].copy()
             update_board(start, block_squares[x], player + piece, room)
             if not check(player, room):
