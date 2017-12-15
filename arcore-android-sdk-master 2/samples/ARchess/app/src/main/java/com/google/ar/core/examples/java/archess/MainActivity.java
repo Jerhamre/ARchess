@@ -96,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private boolean turn;
     private boolean firstMove = true;
     private boolean playerWhite;
+    private int[] shortest;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -424,6 +425,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             Log.d("inputMove2", "move" + inputMove2);
             makeMove();
             inputMove2 = "";
+            shortest[0] = -1;
+            shortest[1] = -1;
             firstMove = true;
         }
     }
@@ -665,7 +668,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     end[1] = newcoords[1] / newcoords[3];
                     end[2] = newcoords[2] / newcoords[3];
 
-                    int[] shortest = new int[2]; // chessboard coordinates
+                    shortest = new int[2]; // chessboard coordinates
 
                     float distance = Float.MAX_VALUE;
 
@@ -682,6 +685,12 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
                         }
                     }
+
+                    if(playerWhite){
+                        shortest[0] = 7-shortest[0];
+                        shortest[1] = 7-shortest[1];
+                    }
+
 
                     choosenPiece = shortest;
                     Log.d("test",chessBoard[choosenPiece[0]][choosenPiece[1]]);
@@ -759,11 +768,20 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                         int color_id = (chessPiece[0] == 0) ? 0 : 1;
                         if(choosenPiece[0] == x && choosenPiece[1] == y)
                             color_id = 2;
-                        mChessRenderer.updateModelMatrix(mAnchorMatrix, piece_world_offset, rotation);
+                        if (playerWhite) {
+                            mChessRenderer.updateModelMatrix(mAnchorMatrix, piece_world_offset, rotation, 180);
+                        } else {
+                            mChessRenderer.updateModelMatrix(mAnchorMatrix, piece_world_offset, rotation,0);
+                        }
                         mChessRenderer.draw_piece(viewmtx, projmtx, lightIntensity, chessPiece[1]-1, color_id);// chess pieces mesh index start counting at 0, not 1
                     }
                 }
-                mChessRenderer.updateModelMatrix(mAnchorMatrix,new float[]{0,0,0},0);
+                if (playerWhite) {
+                    mChessRenderer.updateModelMatrix(mAnchorMatrix,new float[]{0,0,0},90, 180);
+                } else {
+                    mChessRenderer.updateModelMatrix(mAnchorMatrix,new float[]{0,0,0},90, 0);
+                }
+
                 mChessRenderer.draw_chessboard(viewmtx, projmtx, lightIntensity);
             }
 

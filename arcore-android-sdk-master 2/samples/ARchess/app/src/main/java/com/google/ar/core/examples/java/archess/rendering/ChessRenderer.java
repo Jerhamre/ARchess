@@ -270,13 +270,14 @@ public class ChessRenderer {
      * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
      * @see android.opengl.Matrix
      */
-    public void updateModelMatrix(float[] modelMatrix, float[] translation, float rotation) {
+    public void updateModelMatrix(float[] modelMatrix, float[] translation, float rotation, float rotation2) {
 
 
         float[] translationMatrix = new float[16];
         Matrix.setIdentityM(translationMatrix, 0);
 
 
+        Matrix.rotateM(translationMatrix, 0, rotation2, 0, 1, 0);
         Matrix.translateM(translationMatrix, 0, translation[0], translation[1], translation[2]);
         Matrix.rotateM(translationMatrix, 0, rotation, 0, 1, 0);
 
