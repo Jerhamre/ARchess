@@ -23,11 +23,12 @@ import java.net.URISyntaxException;
 
 public class NetworkHandler extends Service {
 
-    String SERVER_IP = "130.240.154.40";
+    String SERVER_IP = "155.4.193.106";
     int SERVER_PORT = 5000;
     Socket socket = null;
     private final IBinder mBinder = new LocalBinder();
-    public String username = "InteBosse";
+    String username;
+    String room;
 
 
     public class LocalBinder extends Binder {
@@ -40,6 +41,8 @@ public class NetworkHandler extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d("test", "NetworkHandler Bind. Thread: " + android.os.Process.myTid());
+        username = intent.getStringExtra("username");
+        room = intent.getStringExtra("room");
         startSocket();
         return mBinder;
     }
@@ -55,7 +58,7 @@ public class NetworkHandler extends Service {
                     JSONObject user = new JSONObject();
                     try {
                         user.put("user", username);
-                        user.put("room", "thisroom");
+                        user.put("room", room);
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -86,7 +89,9 @@ public class NetworkHandler extends Service {
                             sendMessage("observer", "");
                         } else {
                             if (data.getString("started").equals("false")) {
-                                sendMessage("waiting", "");
+                                sendMessage("waiting", data.getString("you"));
+                            } else {
+                                sendMessage("startGame", data.getString("you"));
                             }
                         }
                     } catch (JSONException e) {
@@ -151,6 +156,13 @@ public class NetworkHandler extends Service {
             intent.putExtra("message", data);
         }
 
+        if (event == "waiting") {
+            intent.putExtra("player", data);
+        }
+
+        if (event == "startGame") {
+            intent.putExtra("player", data);
+        }
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
@@ -159,7 +171,7 @@ public class NetworkHandler extends Service {
 
     }
 
-    public void doDisconnect() {
+    public void disconnect() {
         socket.disconnect();
     }
 }

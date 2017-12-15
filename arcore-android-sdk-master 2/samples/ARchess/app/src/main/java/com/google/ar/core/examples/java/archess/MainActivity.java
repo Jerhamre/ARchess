@@ -80,6 +80,8 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     Button newGameBtn;
     Button joinRoomBtn;
+    TextView playerColour;
+    TextView currentTurn;
     EditText inputUsername;
     EditText inputRoom;
     String inputMove2 = "";
@@ -93,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private int[][] test_grid;
     private boolean turn;
     private boolean firstMove = true;
+    private boolean playerWhite;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -127,12 +130,47 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     Log.d("test", "Joined game as observer.");
                     break;
                 case "waiting":
+                    playerColour.setVisibility(View.VISIBLE);
+                    if (intent.getStringExtra("player").equals("W")) {
+                        playerColour.setText("Playing as white");
+                    } else {
+                        playerColour.setText("Playing as black");
+                    }
+                    currentTurn.setVisibility(View.VISIBLE);
+                    currentTurn.setText("Waiting for opponent");
+
                     Log.d("test", "Joined game. Waiting for other player for game to start.");
+                    break;
+                case "startGame":
+                    playerColour.setVisibility(View.VISIBLE);
+                    if (intent.getStringExtra("player").equals("W")) {
+                        playerColour.setText("Playing as white");
+                        playerWhite = true;
+                    } else {
+                        playerColour.setText("Playing as black");
+                        playerWhite = false;
+                    }
+                    currentTurn.setVisibility(View.VISIBLE);
+                    currentTurn.setText("");
                     break;
                 case "board":
                     board = intent.getStringExtra("board");
                     try {
                         JSONObject boardJSON = new JSONObject(board);
+
+
+                        if (playerColour.getVisibility() == View.INVISIBLE) {
+                            playerColour.setVisibility(View.VISIBLE);
+                        }
+                        if (currentTurn.getVisibility() == View.INVISIBLE) {
+                            currentTurn.setVisibility(View.VISIBLE);
+                        }
+                        if (boardJSON.getString("player").equals("W")) {
+                            currentTurn.setText("Whites move");
+                        } else {
+                            currentTurn.setText("Blacks move");
+                        }
+
                         JSONArray column;
                         JSONArray jsonArrayBoard = boardJSON.getJSONArray("board");
                         for (int i = 0; i<8; i++) {
@@ -145,10 +183,41 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                         //chessBoard[0][0] = "";
                         //updateBoard(tempBoard);
                         //Log.d("test", chessBoard[0].toString());
+                        if (boardJSON.getString("checkmate").equals("true")) {
+                            currentTurn.setVisibility(View.INVISIBLE);
+                            if (boardJSON.getString("player").equals("W")) {
+                                if (playerWhite == true) {
+                                    playerColour.setText("You lost");
+                                } else {
+                                    playerColour.setText("You won");
+                                }
+
+                            } else {
+                                if (playerWhite == true) {
+                                    playerColour.setText("You won");
+                                } else {
+                                    playerColour.setText("You lost");
+                                }
+                            }
+                            mService.disconnect();
+                            unbindService(mConnection);
+                            newGameBtn.setVisibility(View.VISIBLE);
+                        }
+
+                        if (boardJSON.getString("check").equals("true")) {
+                            if (boardJSON.getString("player").equals("W")) {
+                                Toast toast = Toast.makeText(getApplicationContext(), "Black is in check", Toast.LENGTH_SHORT);
+                            } else {
+                                Toast toast = Toast.makeText(getApplicationContext(), "White is in check", Toast.LENGTH_SHORT);
+
+                            }
+                        }
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                     Log.d("test", board);
+
+
 
                     break;
                 case "moveFailed":
@@ -233,7 +302,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter("Event"));
-        createNetworkHandler();
+        //createNetworkHandler();
         mSurfaceView = (GLSurfaceView) findViewById(R.id.surfaceview);
 
         mSession = new Session(/*context=*/this);
@@ -289,12 +358,16 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         joinRoomBtn = (Button)findViewById(R.id.submit);
         joinRoomBtn.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
-                // TODO: Send room and username, networkhandler
-                // För att få text från inputfields
-                //inputUsername.getText().toString();
-                //inputRoom.getText().toString();
+                startGame(inputUsername.getText().toString(), inputRoom.getText().toString());
+                findViewById(R.id.input_username).setVisibility(View.INVISIBLE);
+                findViewById(R.id.input_room).setVisibility(View.INVISIBLE);
+                findViewById(R.id.submit).setVisibility(View.INVISIBLE);
             }
         });
+        playerColour = (TextView)findViewById(R.id.txt_player_colour);
+        playerColour.setVisibility(View.INVISIBLE);
+        currentTurn = (TextView)findViewById(R.id.txt_current_turn);
+        currentTurn.setVisibility(View.INVISIBLE);
         /* Legacy code
         inputMove.setOnEditorActionListener(new TextView.OnEditorActionListener(){
             @Override
@@ -714,8 +787,11 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     private void createNetworkHandler() {
         if (networkHandler == null) {
             networkHandler = new Intent(this, NetworkHandler.class);
+            networkHandler.putExtra("username", "bosse");
+            networkHandler.putExtra("room", "testRoom");
         }
         bindService(networkHandler, mConnection, Context.BIND_AUTO_CREATE);
+
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -723,7 +799,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         @Override
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
             NetworkHandler.LocalBinder binder = (NetworkHandler.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
@@ -734,11 +809,17 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             Log.d("test", "Service Stopped. Thread: " + android.os.Process.myTid());
+            networkHandler = null;
             mBound = false;
         }
     };
 
-    public void startGame() {
-
+    private void startGame(String username, String room) {
+        if (networkHandler == null) {
+            networkHandler = new Intent(this, NetworkHandler.class);
+            networkHandler.putExtra("username", username);
+            networkHandler.putExtra("room", room);
+        }
+        bindService(networkHandler, mConnection, Context.BIND_AUTO_CREATE);
     }
 }
