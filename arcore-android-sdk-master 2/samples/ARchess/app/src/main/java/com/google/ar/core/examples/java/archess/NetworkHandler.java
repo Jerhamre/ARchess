@@ -133,7 +133,7 @@ public class NetworkHandler extends Service {
         try {
             chessMove.put("move", move);
             chessMove.put("user", username);
-            chessMove.put("room", "thisroom");
+            chessMove.put("room", room);
         } catch (JSONException e) {
             e.printStackTrace();
         }
