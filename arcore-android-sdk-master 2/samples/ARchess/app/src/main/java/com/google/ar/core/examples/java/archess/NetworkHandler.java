@@ -23,7 +23,7 @@ import java.net.URISyntaxException;
 
 public class NetworkHandler extends Service {
 
-    String SERVER_IP = "155.4.193.106";
+    String SERVER_IP = "130.240.155.109";
     int SERVER_PORT = 5000;
     Socket socket = null;
     private final IBinder mBinder = new LocalBinder();

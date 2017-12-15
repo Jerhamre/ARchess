@@ -133,8 +133,10 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     playerColour.setVisibility(View.VISIBLE);
                     if (intent.getStringExtra("player").equals("W")) {
                         playerColour.setText("Playing as white");
+                        playerWhite = true;
                     } else {
                         playerColour.setText("Playing as black");
+                        playerWhite = false;
                     }
                     currentTurn.setVisibility(View.VISIBLE);
                     currentTurn.setText("Waiting for opponent");
@@ -155,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     break;
                 case "board":
                     board = intent.getStringExtra("board");
+                    Log.d("test", board);
                     try {
                         JSONObject boardJSON = new JSONObject(board);
 
@@ -184,27 +187,36 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                         //updateBoard(tempBoard);
                         //Log.d("test", chessBoard[0].toString());
                         if (boardJSON.getString("checkmate").equals("true")) {
+                            Log.d("test", "Cheackmate");
                             currentTurn.setVisibility(View.INVISIBLE);
                             if (boardJSON.getString("player").equals("W")) {
-                                if (playerWhite == true) {
+                                if (playerWhite) {
+                                    Log.d("test", "white white");
                                     playerColour.setText("You lost");
                                 } else {
+                                    Log.d("test", "white black");
                                     playerColour.setText("You won");
                                 }
 
                             } else {
-                                if (playerWhite == true) {
+                                if (playerWhite) {
+                                    Log.d("test", "black white");
                                     playerColour.setText("You won");
                                 } else {
+                                    Log.d("test", "white black");
                                     playerColour.setText("You lost");
                                 }
                             }
                             mService.disconnect();
                             unbindService(mConnection);
-                            newGameBtn.setVisibility(View.VISIBLE);
+                            findViewById(R.id.input_username).setVisibility(View.VISIBLE);
+                            findViewById(R.id.input_room).setVisibility(View.VISIBLE);
+                            findViewById(R.id.submit).setVisibility(View.VISIBLE);
+                            //newGameBtn.setVisibility(View.VISIBLE);
                         }
 
                         if (boardJSON.getString("check").equals("true")) {
+                            Log.d("test", "Check");
                             if (boardJSON.getString("player").equals("W")) {
                                 Toast toast = Toast.makeText(getApplicationContext(), "Black is in check", Toast.LENGTH_SHORT);
                             } else {
@@ -348,13 +360,13 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         inputRoom = (EditText)findViewById(R.id.input_room);
 
         // Used to set room and username
-        newGameBtn = (Button)findViewById(R.id.btn_new_game);
+        /*newGameBtn = (Button)findViewById(R.id.btn_new_game);
         newGameBtn.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
                 newGame();
             }
          });
-
+*/
         joinRoomBtn = (Button)findViewById(R.id.submit);
         joinRoomBtn.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v) {
@@ -362,6 +374,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 findViewById(R.id.input_username).setVisibility(View.INVISIBLE);
                 findViewById(R.id.input_room).setVisibility(View.INVISIBLE);
                 findViewById(R.id.submit).setVisibility(View.INVISIBLE);
+                //newGameBtn.setVisibility(View.INVISIBLE);
             }
         });
         playerColour = (TextView)findViewById(R.id.txt_player_colour);
