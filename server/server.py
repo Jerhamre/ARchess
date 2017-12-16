@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_socketio import SocketIO, emit, join_room
+from copy import deepcopy
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chessMaster'
@@ -24,9 +25,9 @@ players = {'W': '', 'B': ''}
 king_info = {'W': {'x': 4, 'y': 0, 'free_space': [], 'check': False, 'save_king': [], 'checkmate': False},
              'B': {'x': 4, 'y': 7, 'free_space': [], 'check': False, 'save_king': [], 'checkmate': False}}
 rooms = {}
-rooms['default'] = {'chessBoard': chessBoard.copy(), 'allowed_castling': allowed_castling.copy(), 'double_step_pawn': double_step_pawn.copy(),
-            'waiting': waiting.copy(), 'possible_promotions': possible_promotions, 'current': current.copy(), 'players': players.copy(),
-            'king_info': king_info.copy()}
+rooms['default'] = {'chessBoard': deepcopy(chessBoard), 'allowed_castling': deepcopy(allowed_castling), 'double_step_pawn': deepcopy(double_step_pawn),
+            'waiting': deepcopy(waiting), 'possible_promotions': deepcopy(possible_promotions), 'current': deepcopy(current), 'players': deepcopy(players),
+            'king_info': deepcopy(king_info)}
 
 @socketio.on('join')
 def join(player):
@@ -109,11 +110,10 @@ def handle_move(move):
 
 
 def new_room():
-    print("board", chessBoard.copy())
-    return {'chessBoard': chessBoard.copy(), 'allowed_castling': allowed_castling.copy(), 'double_step_pawn': double_step_pawn.copy(),
-            'waiting': waiting.copy(), 'possible_promotions': possible_promotions, 'current': current.copy(), 'players': players.copy(),
-            'king_info': king_info.copy()}
-
+    print("board", deepcopy(chessBoard))
+    return {'chessBoard': deepcopy(chessBoard), 'allowed_castling': deepcopy(allowed_castling), 'double_step_pawn': deepcopy(double_step_pawn),
+            'waiting': deepcopy(waiting), 'possible_promotions': deepcopy(possible_promotions), 'current': deepcopy(current), 'players': deepcopy(players),
+            'king_info': deepcopy(king_info)}
 
 def player_joined(room, player):
     you = 'observer'
@@ -543,7 +543,7 @@ def save_helper(start, block_squares, move_fun, player, piece, room):
     for x in range(0, len(block_squares)):
         print(block_squares[x])
         if 'success' in move_fun(start, block_squares[x], player, room):
-            board_copy = rooms[room]['chessBoard'].copy()
+            board_copy = deepcopy(rooms[room]['chessBoard'])
             update_board(start, block_squares[x], player + piece, room)
             if not check(player, room):
                 restore_board(board_copy, room)
