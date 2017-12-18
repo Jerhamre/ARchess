@@ -158,7 +158,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                     break;
                 case "board":
                     board = intent.getStringExtra("board");
-                    Log.d("test", board);
                     try {
                         JSONObject boardJSON = new JSONObject(board);
 
@@ -188,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                         //updateBoard(tempBoard);
                         //Log.d("test", chessBoard[0].toString());
                         if (boardJSON.getString("checkmate").equals("true")) {
-                            Log.d("test", "Cheackmate");
+                            Log.d("test", "Checkmate");
                             currentTurn.setVisibility(View.INVISIBLE);
                             if (boardJSON.getString("player").equals("W")) {
                                 if (playerWhite) {
@@ -213,6 +212,7 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                             findViewById(R.id.input_username).setVisibility(View.VISIBLE);
                             findViewById(R.id.input_room).setVisibility(View.VISIBLE);
                             findViewById(R.id.submit).setVisibility(View.VISIBLE);
+                            break;
                             //newGameBtn.setVisibility(View.VISIBLE);
                         }
 
@@ -225,10 +225,25 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
                             }
                         }
+                        if (boardJSON.getString("draw").equals("true")) {
+                            currentTurn.setVisibility(View.INVISIBLE);
+                            playerColour.setText("It's a draw");
+                            mService.disconnect();
+                            unbindService(mConnection);
+                            findViewById(R.id.input_username).setVisibility(View.VISIBLE);
+                            findViewById(R.id.input_room).setVisibility(View.VISIBLE);
+                            findViewById(R.id.submit).setVisibility(View.VISIBLE);
+                            break;
+                        }
+                        if (boardJSON.getString("result").equals("success, promote pawn")) {
+                            Log.d("test", "PROMOTE");
+                            inputMove2 = "Q";
+                            makeMove();
+                        }
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    Log.d("test", board);
+
 
 
 
@@ -262,7 +277,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         test_grid = new int[8][8];
         for(int x=0;x<8;x++) {
             for (int y = 0; y < 8; y++) {
@@ -442,6 +456,13 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
     public void makeMove(){
         String move = inputMove2;
         Log.d("test", "Move: " + move);
+
+        if (move.equals("Ke1-g1") || move.equals("Ke8-g8")) {
+            move = "0-0";
+        }
+        if (move.equals("Ke1-c1") || move.equals("Ke8-c8")) {
+            move = "0-0-0";
+        }
         mService.makeMove(move);
     }
 
