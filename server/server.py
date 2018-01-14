@@ -484,6 +484,7 @@ def move_pawn(start, end, player, room):
             if y_diff == player_dir(player) and no_pieces_between(start, end, True, player, room):
                 if end[1] == 0 or end[1] == 7:
                     rooms[room]['waiting']['promote'] = True
+                    rooms[room]['waiting']['pos'] = [end[0], end[1]]
                     return 'success, promote pawn'
                 return 'success'
             #two steps forward
@@ -495,6 +496,7 @@ def move_pawn(start, end, player, room):
             if opp_piece(end, player, room):
                 if end[1] == 0 or end[1] == 7:
                     rooms[room]['waiting']['promote'] = True
+                    rooms[room]['waiting']['pos'] = [end[0], end[1]]
                     return 'success, promote pawn'
                 return 'success'
             #en passant
