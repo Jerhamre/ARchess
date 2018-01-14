@@ -67,18 +67,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-/**
- * This is a simple example that shows how to create an augmented reality (AR) application using
- * the ARCore API. The application will display any detected planes and will allow the user to
- * tap on a plane to place a 3d model of the Android robot.
- */
 public class MainActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
     Intent networkHandler = null;
 
     NetworkHandler mService;
     boolean mBound = false;
 
-    Button newGameBtn;
     Button joinRoomBtn;
     TextView playerColour;
     TextView currentTurn;
@@ -126,54 +120,58 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
             String board, message;
             String event = intent.getStringExtra("event");
             switch (event) {
+                // Joined room as observer
                 case "observer":
-                    // TODO toast?
-                    Log.d("test", "Joined game as observer.");
+                    Toast toast = Toast.makeText(getApplicationContext(), "Joined room as observer", Toast.LENGTH_SHORT);
+                    toast.show();
                     break;
+                // Joined room as first player. Waiting for opponent.
                 case "waiting":
-                    playerColour.setVisibility(View.VISIBLE);
-                    if (intent.getStringExtra("player").equals("W")) {
+                    if (intent.getStringExtra("data").equals("W")) {
                         playerColour.setText("Playing as white");
                         playerWhite = true;
                     } else {
                         playerColour.setText("Playing as black");
                         playerWhite = false;
                     }
+                    playerColour.setVisibility(View.VISIBLE);
                     currentTurn.setVisibility(View.VISIBLE);
                     currentTurn.setText("Waiting for opponent");
-
-                    Log.d("test", "Joined game. Waiting for other player for game to start.");
                     break;
+                // Joined room as second player. Start game.
                 case "startGame":
-                    playerColour.setVisibility(View.VISIBLE);
-                    if (intent.getStringExtra("player").equals("W")) {
+                    if (intent.getStringExtra("data").equals("W")) {
                         playerColour.setText("Playing as white");
                         playerWhite = true;
                     } else {
                         playerColour.setText("Playing as black");
                         playerWhite = false;
                     }
+                    playerColour.setVisibility(View.VISIBLE);
                     currentTurn.setVisibility(View.VISIBLE);
                     currentTurn.setText("");
                     break;
+                // Board update. Check state and update.
                 case "board":
-                    board = intent.getStringExtra("board");
+                    board = intent.getStringExtra("data");
+                    JSONObject boardJSON;
                     try {
-                        JSONObject boardJSON = new JSONObject(board);
+                        boardJSON = new JSONObject(board);
 
+                        playerColour.setVisibility(View.VISIBLE);
+                        currentTurn.setVisibility(View.VISIBLE);
 
-                        if (playerColour.getVisibility() == View.INVISIBLE) {
-                            playerColour.setVisibility(View.VISIBLE);
-                        }
-                        if (currentTurn.getVisibility() == View.INVISIBLE) {
-                            currentTurn.setVisibility(View.VISIBLE);
-                        }
                         if (boardJSON.getString("player").equals("W")) {
                             currentTurn.setText("Whites move");
                         } else {
                             currentTurn.setText("Blacks move");
                         }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
 
+                    try {
+                        boardJSON = new JSONObject(board);
                         JSONArray column;
                         JSONArray jsonArrayBoard = boardJSON.getJSONArray("board");
                         for (int i = 0; i<8; i++) {
@@ -181,29 +179,25 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                             for (int j = 0; j<8; j++) {
                                 chessBoard[i][j] = column.getString(j);
                             }
-                            //Log.d("test", "New Board: " + tempBoard);
                         }
-                        //chessBoard[0][0] = "";
-                        //updateBoard(tempBoard);
-                        //Log.d("test", chessBoard[0].toString());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        boardJSON = new JSONObject(board);
                         if (boardJSON.getString("checkmate").equals("true")) {
-                            Log.d("test", "Checkmate");
                             currentTurn.setVisibility(View.INVISIBLE);
                             if (boardJSON.getString("player").equals("W")) {
                                 if (playerWhite) {
-                                    Log.d("test", "white white");
                                     playerColour.setText("You lost");
                                 } else {
-                                    Log.d("test", "white black");
                                     playerColour.setText("You won");
                                 }
 
                             } else {
                                 if (playerWhite) {
-                                    Log.d("test", "black white");
                                     playerColour.setText("You won");
                                 } else {
-                                    Log.d("test", "white black");
                                     playerColour.setText("You lost");
                                 }
                             }
@@ -213,18 +207,13 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                             findViewById(R.id.input_room).setVisibility(View.VISIBLE);
                             findViewById(R.id.submit).setVisibility(View.VISIBLE);
                             break;
-                            //newGameBtn.setVisibility(View.VISIBLE);
                         }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
 
-                        if (boardJSON.getString("check").equals("true")) {
-                            Log.d("test", "Check");
-                            if (boardJSON.getString("player").equals("W")) {
-                                Toast toast = Toast.makeText(getApplicationContext(), "Black is in check", Toast.LENGTH_SHORT);
-                            } else {
-                                Toast toast = Toast.makeText(getApplicationContext(), "White is in check", Toast.LENGTH_SHORT);
-
-                            }
-                        }
+                    try {
+                        boardJSON = new JSONObject(board);
                         if (boardJSON.getString("draw").equals("true")) {
                             currentTurn.setVisibility(View.INVISIBLE);
                             playerColour.setText("It's a draw");
@@ -235,8 +224,27 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                             findViewById(R.id.submit).setVisibility(View.VISIBLE);
                             break;
                         }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        boardJSON = new JSONObject(board);
+                        if (boardJSON.getString("check").equals("true")) {
+                            if (boardJSON.getString("player").equals("W")) {
+                                Toast toast2 = Toast.makeText(getApplicationContext(), "Black is in check", Toast.LENGTH_SHORT);
+                                toast2.show();
+                            } else {
+                                Toast toast2 = Toast.makeText(getApplicationContext(), "White is in check", Toast.LENGTH_SHORT);
+                                toast2.show();
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        boardJSON = new JSONObject(board);
                         if (boardJSON.getString("result").equals("success, promote pawn")) {
-                            Log.d("test", "PROMOTE");
                             inputMove2 = "Q";
                             makeMove();
                         }
@@ -244,14 +252,12 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                         e.printStackTrace();
                     }
 
-
-
-
                     break;
+                // Made move failed.
                 case "moveFailed":
-                    message = intent.getStringExtra("message");
-                    Toast toast = Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT);
-                    toast.show();
+                    message = intent.getStringExtra("data");
+                    Toast toast3 = Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT);
+                    toast3.show();
             }
         }
     };
@@ -389,30 +395,12 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
                 findViewById(R.id.input_username).setVisibility(View.INVISIBLE);
                 findViewById(R.id.input_room).setVisibility(View.INVISIBLE);
                 findViewById(R.id.submit).setVisibility(View.INVISIBLE);
-                //newGameBtn.setVisibility(View.INVISIBLE);
             }
         });
         playerColour = (TextView)findViewById(R.id.txt_player_colour);
         playerColour.setVisibility(View.INVISIBLE);
         currentTurn = (TextView)findViewById(R.id.txt_current_turn);
         currentTurn.setVisibility(View.INVISIBLE);
-        /* Legacy code
-        inputMove.setOnEditorActionListener(new TextView.OnEditorActionListener(){
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event){
-                Log.d("test", String.valueOf(actionId));
-
-                if(actionId==KeyEvent.KEYCODE_ENDCALL){
-                    Log.d("test", "Event Move");
-                    makeMove();
-                    return true;
-                }
-                Log.d("test", "Edit return False");
-                return false;
-            }
-        });
-        */
-
     }
 
     public void setMove(int xPos, int yPos){
@@ -836,15 +824,6 @@ public class MainActivity extends AppCompatActivity implements GLSurfaceView.Ren
         });
     }
 
-    private void createNetworkHandler() {
-        if (networkHandler == null) {
-            networkHandler = new Intent(this, NetworkHandler.class);
-            networkHandler.putExtra("username", "bosse");
-            networkHandler.putExtra("room", "testRoom");
-        }
-        bindService(networkHandler, mConnection, Context.BIND_AUTO_CREATE);
-
-    }
 
     private ServiceConnection mConnection = new ServiceConnection() {
 

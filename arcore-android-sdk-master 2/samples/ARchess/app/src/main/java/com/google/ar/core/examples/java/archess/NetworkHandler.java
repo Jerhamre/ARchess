@@ -23,8 +23,11 @@ import java.net.URISyntaxException;
 
 public class NetworkHandler extends Service {
 
+    // CHANGE SERVER IP HERE
     String SERVER_IP = "155.4.193.106";
+    // CHANGE SERVER PORT HERE
     int SERVER_PORT = 5000;
+
     Socket socket = null;
     private final IBinder mBinder = new LocalBinder();
     String username;
@@ -47,6 +50,7 @@ public class NetworkHandler extends Service {
         return mBinder;
     }
 
+    // Connects to server and registers events.
     public void startSocket() {
         try{
             socket =  IO.socket("http://" + SERVER_IP + ":" + SERVER_PORT);
@@ -54,7 +58,6 @@ public class NetworkHandler extends Service {
 
                 @Override
                 public void call(Object... args) {
-                    // Emit username to server
                     JSONObject user = new JSONObject();
                     try {
                         user.put("user", username);
@@ -112,13 +115,6 @@ public class NetworkHandler extends Service {
                     }
                 }
 
-            }).on("promote", new Emitter.Listener() {
-
-                @Override
-                public void call(Object... args) {
-
-                }
-
             });
             socket.connect();
 
@@ -128,6 +124,7 @@ public class NetworkHandler extends Service {
         Log.d("test", "Socket done" + android.os.Process.myTid());
     }
 
+    // Takes argument move and emits it to the server with username and roomname.
     public void makeMove(String move) {
         JSONObject chessMove = new JSONObject();
         try {
@@ -138,39 +135,18 @@ public class NetworkHandler extends Service {
             e.printStackTrace();
         }
         socket.emit("move", chessMove);
-        Log.d("test", "Move Made" + move);
     }
 
-    public void sendMessage(String event) {
-
-    }
+    // Send message recieved from socket to UI thread for UI updates.
     public void sendMessage (String event, String data) {
         Intent intent = new Intent("Event");
         intent.putExtra("event", event);
-        if (event == "board") {
-            intent.putExtra("board", data);
-        }
-
-
-        if (event == "moveFailed") {
-            intent.putExtra("message", data);
-        }
-
-        if (event == "waiting") {
-            intent.putExtra("player", data);
-        }
-
-        if (event == "startGame") {
-            intent.putExtra("player", data);
-        }
+        intent.putExtra("data", data);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
-    public void startGame () {
-
-    }
-
+    // Disconnect socket.
     public void disconnect() {
         socket.disconnect();
     }
