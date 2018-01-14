@@ -1,3 +1,12 @@
+
+/*
+ * ARChess Chess Renderer
+ *
+ *
+ */
+
+
+
 /*
  * Copyright 2017 Google Inc. All Rights Reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +44,10 @@ import de.javagl.ObjReader;
 import de.javagl.ObjUtils;
 
 /**
- * Renders an object loaded from an OBJ file in OpenGL.
+ * ChessRenderer is ARChess' standard object renderer for rendering the virtual chess objects.
+ *
+ * Chess pieces are rendered externally and individually, ChessRenderer holds no chess state.
+ * The objects are loaded in as .obj files from the assets folder.
  */
 public class ChessRenderer {
     private static final String TAG = ChessRenderer.class.getSimpleName();
@@ -58,14 +70,35 @@ public class ChessRenderer {
     private static final float[] LIGHT_DIRECTION = new float[] { 0.0f, 1.0f, 0.0f, 0.0f };
     private float[] mViewLightDirection = new float[4];
 
+    /**
+     * All the meshes (objects) that can be rendered.
+     *
+     * meshChessboard is separated into 3 pieces in order to separate the white squares,
+     * black squares and the bottom from each other to easily colorize them.
+     *
+     * meshChessPieces contain all the (6) separate chess pieces.
+     */
     private StaticMesh meshChessboard[];    // 3 pieces for the whole chessboard
     private StaticMesh meshChessPieces[];
+
+
+    /**
+     * These are rgb colors that can be altered to change the chessboards colors.
+     */
     private float[] color_white;
     private float[] color_black;
     private float[] color_marked;
     private float[] color_error;
 
+    /**
+     * The shader program
+     */
     private int mProgram;
+
+    /**
+     * The renderer uses a blank default texture for all meshes. Extend this to the static meshes
+     * or to a separate texture list if desired.
+     */
     private int[] mTextures = new int[1];
 
     // Shader location: model view projection matrix.
@@ -103,6 +136,13 @@ public class ChessRenderer {
     public ChessRenderer() {
     }
 
+    /**
+     *
+     * @param context Context for asset loading
+     * @param asset_name Name of asset in assets folder
+     * @return StaticMesh handle for asset usable by draw(#) function.
+     * @throws IOException
+     */
     private StaticMesh load_model(Context context, String asset_name) throws IOException {
 
         StaticMesh temp;
@@ -214,6 +254,7 @@ public class ChessRenderer {
 
         ShaderUtil.checkGLError(TAG, "Texture loading");
 
+        // Load static meshes.
         meshChessboard = new StaticMesh[3];
 
         meshChessboard[0] = load_model(context, "chessboard_part_white.obj");
@@ -229,12 +270,14 @@ public class ChessRenderer {
         meshChessPieces[4] = load_model(context, "queen.obj");
         meshChessPieces[5] = load_model(context, "king.obj");
 
+
+        // Set chessboard colors.
         color_white = new float[] {0.9f, 0.7f, 0.4f};
         color_black = new float[] {0.9f, 0.4f, 0.4f};
         color_marked = new float[] {1, 1, 0};
         color_error = new float[] {1, 0, 1};
 
-
+        // Set up shader uniforms and attributes.
         mColorUniform = GLES20.glGetUniformLocation(mProgram, "color");
 
         mModelViewUniform = GLES20.glGetUniformLocation(mProgram, "u_ModelView");
@@ -268,6 +311,9 @@ public class ChessRenderer {
      * Updates the object model matrix and applies scaling.
      *
      * @param modelMatrix A 4x4 model-to-world transformation matrix, stored in column-major order.
+     * @param translation translation offset
+     * @param rotation rotation after translation (rename)
+     * @param rotation2 rotation before translation (rename)
      * @see android.opengl.Matrix
      */
     public void updateModelMatrix(float[] modelMatrix, float[] translation, float rotation, float rotation2) {
@@ -302,6 +348,16 @@ public class ChessRenderer {
         mSpecularPower = specularPower;
     }
 
+    /**
+     *
+     * @param mesh mesh data to render
+     * @param cameraView camera view matrix
+     * @param cameraPerspective camera perspective matrix
+     * @param lightIntensity light intensity
+     * @param red color red intensity
+     * @param green color green intensity
+     * @param blue color blue intensity
+     */
     private void draw(StaticMesh mesh, float[] cameraView, float[] cameraPerspective, float lightIntensity, float red, float green, float blue)
     {
 
@@ -390,6 +446,14 @@ public class ChessRenderer {
         ShaderUtil.checkGLError(TAG, "After draw");
     }
 
+
+    /**
+     * render the base chess board.
+     *
+     * @param cameraView
+     * @param cameraPerspective
+     * @param lightIntensity
+     */
     public void draw_chessboard(float[] cameraView, float[] cameraPerspective, float lightIntensity)
     {
         float[] color;
@@ -403,6 +467,15 @@ public class ChessRenderer {
         draw(meshChessboard[2], cameraView, cameraPerspective, lightIntensity, color[0], color[1], color[2]);
     }
 
+    /**
+     * render chess piece
+     *
+     * @param cameraView
+     * @param cameraPerspective
+     * @param lightIntensity
+     * @param chess_piece_type matching index from meshChessPieces[] todo: enums
+     * @param color_id range is [0, 2] todo: enums
+     */
     public void draw_piece(float[] cameraView, float[] cameraPerspective, float lightIntensity, int chess_piece_type, int color_id) {
 
         if(chess_piece_type < 0 || chess_piece_type >= 6)
@@ -428,9 +501,12 @@ public class ChessRenderer {
 
     }
 
-    /*
-    In: chess piece location on board
-    Out: float[3] (x, y, z) offset to chessboard origin
+
+    /**
+     *
+     * @param x chess piece x coordinate on the board
+     * @param y chess piece y coordinate on the board
+     * @return float[3] (x, y, z) offset to chessboard origin in world coordinates
      */
     public float[] get_piece_3d_offset(int x, int y)
     {
